@@ -1,300 +1,604 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LFI Simulator v4.6 (New Content)</title>
+    <title>ArenaWebSec • Advanced LFI Security Simulator & Lab</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            950: '#060913',
+                            900: '#0b1120',
+                            800: '#131d33',
+                            700: '#1e2942',
+                            accent: '#10b981',
+                            cyan: '#06b6d4',
+                            purple: '#8b5cf6',
+                            rose: '#f43f5e'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600&display=swap');
-
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0f172a;
+            background-color: #060913;
             color: #e2e8f0;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .terminal-font { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+
+        /* Custom Modern Scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0b1120; }
+        ::-webkit-scrollbar-thumb { background: #1e2942; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+        
+        .browser-content::-webkit-scrollbar-track { background: #f8fafc; }
+        .browser-content::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .browser-content::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .glass-panel {
+            background: rgba(19, 29, 51, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glow-emerald { box-shadow: 0 0 20px -5px rgba(16, 185, 129, 0.3); }
+        .glow-cyan { box-shadow: 0 0 20px -5px rgba(6, 182, 212, 0.3); }
+        .glow-purple { box-shadow: 0 0 20px -5px rgba(139, 92, 246, 0.3); }
+
+        .tree-item:hover { background-color: rgba(30, 41, 66, 0.8); }
+        .tree-item.active { background-color: rgba(16, 185, 129, 0.15); border-left: 2px solid #10b981; }
+
+        /* Simulated Web App Styling */
+        .sim-site h1 { font-size: 2.25rem; font-weight: 800; color: #0f172a; margin-bottom: 1.25rem; letter-spacing: -0.025em; line-height: 1.2; }
+        .sim-site h2 { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin-top: 1.75rem; margin-bottom: 0.75rem; }
+        .sim-site p { margin-bottom: 1.25rem; line-height: 1.75; color: #475569; font-size: 0.95rem; }
+        .sim-site a { color: #2563eb; text-decoration: none; font-weight: 600; cursor: pointer; border-bottom: 1px dashed #2563eb; transition: all 0.2s; }
+        .sim-site a:hover { color: #1d4ed8; border-bottom-style: solid; }
+        .sim-site ul { list-style-type: disc; margin-left: 1.5rem; color: #475569; margin-bottom: 1.25rem; }
+        
+        /* Code Dump Viewer */
+        .code-dump-container {
+            background: #090d16;
+            border: 1px solid #1e2942;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
             overflow: hidden;
         }
 
-        .terminal-font { font-family: 'Fira Code', monospace; }
-
-        /* Scrollbars */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #1e293b; }
-        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
-        
-        .browser-content::-webkit-scrollbar-track { background: #f1f5f9; }
-        .browser-content::-webkit-scrollbar-thumb { background: #cbd5e1; }
-
-        .tree-line { border-left: 1px solid #334155; margin-left: 5px; }
-        .tree-item:hover { background-color: #1e293b; }
-        
-        /* Simulated Site Styles */
-        .sim-site h1 { font-size: 2rem; font-weight: 800; color: #1e293b; margin-bottom: 1rem; letter-spacing: -0.025em; }
-        .sim-site h2 { font-size: 1.5rem; font-weight: 700; color: #334155; margin-top: 1.5rem; margin-bottom: 0.75rem; }
-        .sim-site p { margin-bottom: 1rem; line-height: 1.75; color: #475569; font-size: 1rem; }
-        .sim-site a { color: #2563eb; text-decoration: none; font-weight: 500; cursor: pointer; border-bottom: 1px dashed #2563eb; }
-        .sim-site a:hover { color: #1d4ed8; border-bottom-style: solid; }
-        .sim-site ul { list-style-type: disc; margin-left: 1.5rem; color: #475569; margin-bottom: 1rem; }
-        .sim-site img { border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
-        
-        /* File Dump Box */
-        .sim-site .dump { 
-            background: #1e293b; 
-            padding: 1.5rem; 
-            border-radius: 0.5rem; 
-            font-family: 'Fira Code', monospace; 
-            font-size: 0.85rem; 
-            color: #a5b4fc; 
-            border: 1px solid #334155; 
-            overflow-x: auto; 
-            margin-top: 1.5rem;
-            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+        .code-line {
+            display: flex;
+            line-height: 1.6;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
         }
+        .code-line:hover { background-color: rgba(255, 255, 255, 0.03); }
+        .line-number {
+            width: 3rem;
+            padding-right: 1rem;
+            text-align: right;
+            color: #475569;
+            user-select: none;
+            flex-shrink: 0;
+            border-right: 1px solid #1e2942;
+            background: rgba(11, 17, 32, 0.5);
+        }
+        .line-text {
+            padding-left: 1rem;
+            color: #e2e8f0;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        /* Pulse Animation */
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .animate-pulse-slow { animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
     </style>
 </head>
-<body class="h-screen flex flex-col text-sm">
+<body class="h-screen flex flex-col text-sm bg-cyber-950 text-slate-200">
 
-    <!-- Top Bar -->
-    <header class="bg-slate-900 border-b border-slate-700 px-4 py-2 flex justify-between items-center h-12 shrink-0">
-        <div class="flex items-center gap-2">
-            <i class="fa-solid fa-server text-emerald-400"></i>
-            <h1 class="font-bold">LFI Simulator <span class="text-xs font-normal text-slate-500">v4.6</span></h1>
-        </div>
-        
-        <div class="flex gap-2">
-            <button onclick="hardReset()" class="px-3 py-1 text-xs font-medium text-red-400 hover:text-red-300 border border-red-900/50 rounded hover:bg-red-900/20 transition-all">
-                <i class="fa-solid fa-rotate-right mr-1"></i>Reset System
-            </button>
-            <div class="flex bg-slate-950 rounded border border-slate-700 p-0.5">
-                <button id="btn-linux" onclick="switchOS('linux')" class="px-3 py-1 text-xs font-medium bg-emerald-600 text-white rounded transition-all"><i class="fa-brands fa-linux mr-1"></i>Linux</button>
-                <button id="btn-windows" onclick="switchOS('windows')" class="px-3 py-1 text-xs font-medium text-slate-400 hover:text-white transition-all"><i class="fa-brands fa-windows mr-1"></i>Win</button>
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed top-14 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Header Navigation Bar -->
+    <header class="bg-cyber-900/90 border-b border-cyber-700/60 px-4 py-2 flex items-center justify-between h-14 shrink-0 backdrop-blur-md z-30 shadow-lg">
+        <!-- Logo & Title -->
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-emerald-600 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+                <i class="fa-solid fa-shield-halved text-lg"></i>
             </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="font-extrabold text-base tracking-tight text-white">ArenaWebSec</h1>
+                    <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                        LFI Lab v5.0
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Payload Injector Quick Bar (Hidden by default, toggled via button) -->
+        <div id="quick-vectors-bar" class="hidden flex items-center gap-1.5 bg-cyber-950/90 px-3 py-1 rounded-lg border border-amber-500/30 transition-all shadow-lg">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400 mr-1 flex items-center gap-1">
+                <i class="fa-solid fa-bolt text-amber-400 text-xs"></i> Quick Vectors:
+            </span>
+            <button onclick="injectPayload('../../etc/passwd')" class="px-2 py-0.5 text-[11px] font-mono bg-cyber-800 text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300 rounded border border-cyber-700 transition-all">
+                /etc/passwd
+            </button>
+            <button onclick="injectPayload('../../proc/self/environ')" class="px-2 py-0.5 text-[11px] font-mono bg-cyber-800 text-cyan-400 hover:bg-cyan-500/20 hover:text-cyan-300 rounded border border-cyber-700 transition-all">
+                proc/self/environ
+            </button>
+            <button onclick="injectPayload('config.php')" class="px-2 py-0.5 text-[11px] font-mono bg-cyber-800 text-purple-400 hover:bg-purple-500/20 hover:text-purple-300 rounded border border-cyber-700 transition-all">
+                config.php
+            </button>
+            <button onclick="injectPayload('..\\..\\..\\..\\Windows\\win.ini')" class="px-2 py-0.5 text-[11px] font-mono bg-cyber-800 text-amber-400 hover:bg-amber-500/20 hover:text-amber-300 rounded border border-cyber-700 transition-all">
+                win.ini
+            </button>
+            <button onclick="injectPayload('php://filter/convert.base64-encode/resource=config.php')" class="px-2 py-0.5 text-[11px] font-mono bg-blue-900/40 text-blue-300 hover:bg-blue-600/30 rounded border border-blue-500/30 transition-all">
+                php://filter
+            </button>
+        </div>
+
+        <!-- Right Controls -->
+        <div class="flex items-center gap-3">
+            <!-- Quick Vectors Toggle Button -->
+            <button onclick="toggleQuickVectors()" class="px-3 py-1.5 text-xs font-semibold bg-cyber-800 text-amber-400 hover:bg-amber-500/20 hover:text-amber-300 border border-amber-500/40 rounded-lg transition-all flex items-center gap-1.5 shadow-sm" title="Toggle Quick Payload Vectors">
+                <i class="fa-solid fa-bolt text-amber-400 text-xs"></i>
+                <span class="hidden sm:inline">Quick Vectors</span>
+            </button>
+
+            <!-- Class Work Counter -->
+            <div id="cw-badge" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-medium cursor-pointer hover:bg-amber-500/20 transition-all" onclick="showCWStatus()">
+                <i class="fa-solid fa-graduation-cap text-amber-400"></i>
+                <span>Class Work: <strong id="cw-count">0/2</strong></span>
+            </div>
+
+            <!-- Cheat Sheet Modal Button -->
+            <button onclick="openCheatSheet()" class="px-3 py-1.5 text-xs font-semibold bg-cyber-800 text-cyan-400 hover:bg-cyber-700 hover:text-cyan-300 border border-cyan-500/30 rounded-lg transition-all flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-book-open"></i>
+                <span class="hidden sm:inline">Cheat Sheet</span>
+            </button>
+
+            <!-- OS Switcher Segment control -->
+            <div class="flex bg-cyber-950 rounded-lg border border-cyber-700 p-0.5 shadow-inner">
+                <button id="btn-linux" onclick="switchOS('linux')" class="px-3 py-1 text-xs font-semibold bg-emerald-600 text-white rounded-md transition-all flex items-center gap-1.5 shadow">
+                    <i class="fa-brands fa-linux text-sm"></i>
+                    <span>Linux</span>
+                </button>
+                <button id="btn-windows" onclick="switchOS('windows')" class="px-3 py-1 text-xs font-semibold text-slate-400 hover:text-white rounded-md transition-all flex items-center gap-1.5">
+                    <i class="fa-brands fa-windows text-sm"></i>
+                    <span>Windows</span>
+                </button>
+            </div>
+
+            <!-- Reset Button -->
+            <button onclick="hardReset()" class="p-2 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition-all" title="Reset System Environment">
+                <i class="fa-solid fa-rotate-right"></i>
+            </button>
         </div>
     </header>
 
-    <!-- Main Content -->
+    <!-- Main Working Area -->
     <div class="flex-1 flex overflow-hidden">
-        <!-- Left: System File Tree -->
-        <aside class="w-1/3 md:w-64 bg-slate-900 border-r border-slate-700 flex flex-col shrink-0">
-            <div class="px-3 py-2 bg-slate-800 border-b border-slate-700 text-[10px] font-bold uppercase tracking-wider text-slate-400 flex justify-between items-center">
-                <span>File System</span>
-                <button onclick="collapseAll()" class="hover:text-white" title="Collapse All"><i class="fa-solid fa-compress-arrows-alt"></i></button>
+        
+        <!-- Left Sidebar: Interactive File System Explorer -->
+        <aside class="w-80 bg-cyber-900/95 border-r border-cyber-700/60 flex flex-col shrink-0 select-none z-20">
+            <!-- Sidebar Header & Search -->
+            <div class="p-3 bg-cyber-900 border-b border-cyber-700/60 flex flex-col gap-2">
+                <div class="flex justify-between items-center text-xs font-bold uppercase tracking-wider text-slate-400">
+                    <span class="flex items-center gap-1.5 text-emerald-400">
+                        <i class="fa-solid fa-folder-tree"></i> System File Tree
+                    </span>
+                    <div class="flex items-center gap-1 text-slate-400">
+                        <button onclick="collapseAll()" class="p-1 hover:text-white hover:bg-cyber-800 rounded transition-colors" title="Collapse All Folders">
+                            <i class="fa-solid fa-compress-arrows-alt text-xs"></i>
+                        </button>
+                        <button onclick="renderTree()" class="p-1 hover:text-white hover:bg-cyber-800 rounded transition-colors" title="Refresh Explorer Tree">
+                            <i class="fa-solid fa-sync-alt text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tree Search Box -->
+                <div class="relative">
+                    <i class="fa-solid fa-search absolute left-2.5 top-2.5 text-slate-500 text-xs"></i>
+                    <input type="text" id="tree-search" oninput="handleTreeSearch(this.value)" placeholder="Filter file system..." class="w-full bg-cyber-950 border border-cyber-700/70 rounded-md pl-8 pr-3 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors font-mono">
+                </div>
             </div>
-            <div id="file-tree" class="flex-1 overflow-y-auto p-2 text-xs terminal-font text-slate-300 select-none tree-scroll"></div>
+
+            <!-- File Tree Content -->
+            <div id="file-tree" class="flex-1 overflow-y-auto p-2 text-xs terminal-font text-slate-300"></div>
+
+            <!-- System Info Footer Tag -->
+            <div class="p-2.5 bg-cyber-950/80 border-t border-cyber-700/60 text-[11px] text-slate-400 font-mono flex items-center justify-between">
+                <span class="flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse-slow"></span>
+                    <span id="os-status-text">Ubuntu 22.04 LTS (EXT4)</span>
+                </span>
+                <span class="text-slate-500 text-[10px]" id="os-root-label">/</span>
+            </div>
         </aside>
 
-        <!-- Right: Vulnerable Browser -->
-        <main class="flex-1 bg-slate-950 flex flex-col relative min-w-0">
-            <!-- Browser Toolbar -->
-            <div class="bg-slate-800 p-2 border-b border-slate-700 flex items-center gap-2 shadow-md z-10">
-                <div class="flex gap-1 text-slate-400">
-                    <i class="fa-solid fa-arrow-left p-1.5 hover:bg-slate-700 rounded cursor-pointer"></i>
-                    <i class="fa-solid fa-arrow-right p-1.5 hover:bg-slate-700 rounded cursor-pointer opacity-50"></i>
-                    <i onclick="reloadBrowser()" class="fa-solid fa-rotate-right p-1.5 hover:bg-slate-700 rounded cursor-pointer"></i>
+        <!-- Right Main Workspace: Vulnerable Browser Container -->
+        <main class="flex-1 bg-cyber-950 flex flex-col relative min-w-0">
+            
+            <!-- Browser Chrome Toolbar -->
+            <div class="bg-cyber-900/90 p-2.5 border-b border-cyber-700/60 flex items-center gap-3 shadow-md z-10 backdrop-blur-sm">
+                <!-- Browser Controls (Traffic Light Buttons) -->
+                <div class="flex items-center gap-1.5 pl-1">
+                    <span class="w-3 h-3 rounded-full bg-rose-500/80 inline-block"></span>
+                    <span class="w-3 h-3 rounded-full bg-amber-500/80 inline-block"></span>
+                    <span class="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
                 </div>
-                <!-- Address Bar -->
-                <div class="flex-1 bg-slate-900 border border-slate-600 rounded flex items-center px-3 py-1 text-xs focus-within:border-blue-500 transition-colors">
-                    <i class="fa-solid fa-lock text-green-500 mr-2 text-[10px]"></i>
-                    <input type="text" id="browser-url" class="bg-transparent border-none outline-none text-slate-300 w-full font-mono" value="http://lfi.lab/index.php?page=home.php" spellcheck="false">
+
+                <!-- Nav Buttons -->
+                <div class="flex gap-1 text-slate-400">
+                    <button class="p-1 hover:bg-cyber-800 rounded transition-colors" title="Back"><i class="fa-solid fa-arrow-left text-xs"></i></button>
+                    <button class="p-1 hover:bg-cyber-800 rounded transition-colors opacity-40" title="Forward"><i class="fa-solid fa-arrow-right text-xs"></i></button>
+                    <button onclick="reloadBrowser()" class="p-1 hover:bg-cyber-800 hover:text-white rounded transition-colors" title="Reload Page"><i class="fa-solid fa-rotate-right text-xs"></i></button>
+                </div>
+
+                <!-- URL Address Bar (Clean Lock Icon without LFI VULN badge) -->
+                <div class="flex-1 bg-cyber-950 border border-cyber-700/80 rounded-lg flex items-center px-3 py-1.5 text-xs focus-within:border-emerald-500 transition-all shadow-inner">
+                    <i class="fa-solid fa-lock text-emerald-400 mr-2.5 text-[11px]" title="Connection Secure (HTTPS)"></i>
+                    <input type="text" id="browser-url" class="bg-transparent border-none outline-none text-emerald-300 w-full font-mono text-xs" value="http://arenawebsec.lab/index.php?page=home.php" spellcheck="false">
+                    <button onclick="copyBrowserUrl()" class="text-slate-500 hover:text-slate-200 ml-2" title="Copy URL">
+                        <i class="fa-solid fa-copy text-xs"></i>
+                    </button>
                 </div>
             </div>
 
-            <!-- Browser Viewport -->
-            <div class="flex-1 bg-gray-50 relative overflow-hidden flex flex-col">
+            <!-- Browser Viewport Frame -->
+            <div class="flex-1 bg-slate-100 relative overflow-hidden flex flex-col">
                 <div id="browser-content" class="flex-1 overflow-auto browser-content text-slate-800 font-sans text-sm relative"></div>
-                <div class="bg-white border-t border-slate-200 px-2 py-0.5 text-[10px] text-slate-400 flex justify-between">
-                    <span id="browser-status">Connected to 127.0.0.1</span>
-                    <span id="server-signature">Apache/2.4.41 (Ubuntu)</span>
+                
+                <!-- Browser Status Footer -->
+                <div class="bg-slate-900 border-t border-slate-800 px-3 py-1 text-[11px] text-slate-400 flex justify-between font-mono">
+                    <span id="browser-status" class="flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Connected to target host (127.0.0.1:80)
+                    </span>
+                    <span id="server-signature" class="text-emerald-400/80">Apache/2.4.41 (Ubuntu 22.04) PHP/7.4.3</span>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Bottom: Terminal -->
-    <footer class="h-48 shrink-0 bg-black border-t border-slate-600 flex flex-col shadow-lg z-20">
-        <div class="bg-slate-800 px-3 py-1 text-[10px] text-slate-400 flex justify-between select-none">
-            <span>Terminal (Root)</span>
-            <span id="terminal-status" class="text-emerald-500">● Live</span>
+    <!-- Bottom Panel: Integrated Terminal (Root CLI) -->
+    <footer id="terminal-panel" class="h-52 shrink-0 bg-cyber-950 border-t border-cyber-700/70 flex flex-col shadow-2xl z-20 transition-all">
+        <!-- Terminal Header Bar -->
+        <div class="bg-cyber-900 px-3 py-1.5 border-b border-cyber-700/60 text-xs font-mono text-slate-400 flex justify-between items-center select-none">
+            <div class="flex items-center gap-3">
+                <span class="font-bold text-slate-200 flex items-center gap-1.5">
+                    <i class="fa-solid fa-terminal text-emerald-400 text-xs"></i> Integrated Terminal (Root Shell)
+                </span>
+                <span id="terminal-status" class="text-emerald-400 text-[11px] flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Live Session
+                </span>
+            </div>
+
+            <div class="flex items-center gap-4 text-[11px] text-slate-400">
+                <span class="hidden md:inline text-slate-400"><i class="fa-solid fa-microchip text-slate-400 mr-1"></i> CPU: <span class="text-slate-200">12%</span></span>
+                <span class="hidden md:inline text-slate-400"><i class="fa-solid fa-memory text-slate-400 mr-1"></i> RAM: <span class="text-slate-200">1.4 GB / 4.0 GB</span></span>
+                <button onclick="clearTerminal()" class="hover:text-white px-2 py-0.5 rounded hover:bg-cyber-800 transition-colors" title="Clear Terminal Log">
+                    <i class="fa-solid fa-eraser mr-1"></i> Clear
+                </button>
+            </div>
         </div>
-        <div id="terminal-output" class="flex-1 p-2 overflow-y-auto terminal-font text-xs text-green-400" onclick="document.getElementById('cmd-input').focus()">
-            <div class="mb-2 opacity-50">LFI Simulation Terminal.<br>Type 'help' for commands.</div>
+
+        <!-- Terminal Output Viewport -->
+        <div id="terminal-output" class="flex-1 p-3 overflow-y-auto terminal-font text-xs text-slate-200 leading-relaxed" onclick="document.getElementById('cmd-input').focus()">
+            <div class="mb-2 text-slate-400 opacity-80">
+                ArenaWebSec Shell Environment v5.0 [Type '<span class="text-emerald-400 font-bold">help</span>' for available commands]
+            </div>
             <div id="output-lines"></div>
             <div class="flex items-center mt-1">
-                <span id="prompt-user" class="text-blue-400 font-bold mr-1">root@box:</span>
-                <span id="prompt-path" class="text-yellow-400 font-bold mr-1">/</span>
-                <span class="text-slate-400 mr-1">$</span>
-                <input type="text" id="cmd-input" class="bg-transparent border-none outline-none text-white flex-1 caret-white p-0 m-0 h-5" autocomplete="off" spellcheck="false">
+                <span id="prompt-user" class="text-emerald-400 font-bold mr-1">root@box:</span>
+                <span id="prompt-path" class="text-amber-400 font-bold mr-1">/</span>
+                <span class="text-slate-400 mr-2">$</span>
+                <input type="text" id="cmd-input" class="bg-transparent border-none outline-none text-white flex-1 caret-emerald-400 p-0 m-0 h-5 font-mono" autocomplete="off" spellcheck="false">
             </div>
         </div>
     </footer>
 
+    <!-- Payload Cheat Sheet Modal -->
+    <div id="cheatsheet-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-cyber-900 border border-cyber-700/80 rounded-xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 bg-cyber-950 border-b border-cyber-700/70 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center border border-cyan-500/30">
+                        <i class="fa-solid fa-graduation-cap text-base"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-base text-white">LFI Exploitation Guide & Cheat Sheet</h3>
+                        <p class="text-xs text-slate-400">Essential Local File Inclusion payloads & path traversal mechanics</p>
+                    </div>
+                </div>
+                <button onclick="closeCheatSheet()" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-cyber-800 transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto flex-1 space-y-6 text-sm text-slate-300">
+                
+                <!-- Overview -->
+                <div class="bg-cyber-950/70 border border-cyber-700/50 p-4 rounded-lg">
+                    <h4 class="font-bold text-emerald-400 mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-lightbulb"></i> What is Local File Inclusion (LFI)?
+                    </h4>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Local File Inclusion occurs when a web application takes user input (such as <code class="text-pink-400 font-mono bg-cyber-800 px-1 py-0.5 rounded">?page=filename</code>) and passes it directly to file inclusion functions like PHP's <code class="text-pink-400 font-mono bg-cyber-800 px-1 py-0.5 rounded">include()</code> or <code class="text-pink-400 font-mono bg-cyber-800 px-1 py-0.5 rounded">require()</code> without sanitization. An attacker can use directory traversal sequences (<code class="text-amber-400 font-mono">../</code> or <code class="text-amber-400 font-mono">..\</code>) to read sensitive system files outside the web directory.
+                    </p>
+                </div>
+
+                <!-- Vectors Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Linux Targets -->
+                    <div class="bg-cyber-950/70 border border-cyber-700/50 p-4 rounded-lg">
+                        <h4 class="font-bold text-white mb-2 flex items-center gap-2 text-xs uppercase tracking-wider">
+                            <i class="fa-brands fa-linux text-emerald-400"></i> Critical Linux Targets
+                        </h4>
+                        <ul class="space-y-2 text-xs font-mono">
+                            <li class="flex items-center justify-between bg-cyber-900 p-2 rounded border border-cyber-800">
+                                <div>
+                                    <span class="text-emerald-400 font-bold">/etc/passwd</span>
+                                    <p class="text-[10px] text-slate-400 font-sans">User accounts list</p>
+                                </div>
+                                <button onclick="injectPayload('../../etc/passwd'); closeCheatSheet();" class="px-2 py-1 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white rounded text-[11px] transition-colors">Test</button>
+                            </li>
+                            <li class="flex items-center justify-between bg-cyber-900 p-2 rounded border border-cyber-800">
+                                <div>
+                                    <span class="text-cyan-400 font-bold">proc/self/environ</span>
+                                    <p class="text-[10px] text-slate-400 font-sans">Process environment & DB keys</p>
+                                </div>
+                                <button onclick="injectPayload('../../proc/self/environ'); closeCheatSheet();" class="px-2 py-1 bg-cyan-600/20 text-cyan-400 hover:bg-cyan-600 hover:text-white rounded text-[11px] transition-colors">Test</button>
+                            </li>
+                            <li class="flex items-center justify-between bg-cyber-900 p-2 rounded border border-cyber-800">
+                                <div>
+                                    <span class="text-amber-400 font-bold">var/log/apache2/access.log</span>
+                                    <p class="text-[10px] text-slate-400 font-sans">Web server logs (Log Poisoning target)</p>
+                                </div>
+                                <button onclick="injectPayload('../../../var/log/apache2/access.log'); closeCheatSheet();" class="px-2 py-1 bg-amber-600/20 text-amber-400 hover:bg-amber-600 hover:text-white rounded text-[11px] transition-colors">Test</button>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Windows Targets -->
+                    <div class="bg-cyber-950/70 border border-cyber-700/50 p-4 rounded-lg">
+                        <h4 class="font-bold text-white mb-2 flex items-center gap-2 text-xs uppercase tracking-wider">
+                            <i class="fa-brands fa-windows text-cyan-400"></i> Critical Windows Targets
+                        </h4>
+                        <ul class="space-y-2 text-xs font-mono">
+                            <li class="flex items-center justify-between bg-cyber-900 p-2 rounded border border-cyber-800">
+                                <div>
+                                    <span class="text-cyan-400 font-bold">Windows\win.ini</span>
+                                    <p class="text-[10px] text-slate-400 font-sans">System configuration file</p>
+                                </div>
+                                <button onclick="switchOS('windows'); injectPayload('..\\..\\..\\..\\Windows\\win.ini'); closeCheatSheet();" class="px-2 py-1 bg-cyan-600/20 text-cyan-400 hover:bg-cyan-600 hover:text-white rounded text-[11px] transition-colors">Test</button>
+                            </li>
+                            <li class="flex items-center justify-between bg-cyber-900 p-2 rounded border border-cyber-800">
+                                <div>
+                                    <span class="text-purple-400 font-bold">Users\Administrator\Desktop\passwords.txt</span>
+                                    <p class="text-[10px] text-slate-400 font-sans">Admin credentials</p>
+                                </div>
+                                <button onclick="switchOS('windows'); injectPayload('..\\..\\..\\..\\Users\\Administrator\\Desktop\\passwords.txt'); closeCheatSheet();" class="px-2 py-1 bg-purple-600/20 text-purple-400 hover:bg-purple-600 hover:text-white rounded text-[11px] transition-colors">Test</button>
+                            </li>
+                            <li class="flex items-center justify-between bg-cyber-900 p-2 rounded border border-cyber-800">
+                                <div>
+                                    <span class="text-emerald-400 font-bold">xampp\htdocs\web.config</span>
+                                    <p class="text-[10px] text-slate-400 font-sans">IIS / Server configuration</p>
+                                </div>
+                                <button onclick="switchOS('windows'); injectPayload('web.config'); closeCheatSheet();" class="px-2 py-1 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white rounded text-[11px] transition-colors">Test</button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- PHP Filter Wrapper -->
+                <div class="bg-blue-950/40 border border-blue-500/30 p-4 rounded-lg">
+                    <h4 class="font-bold text-blue-300 mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-code"></i> Advanced Technique: PHP Filter Wrapper
+                    </h4>
+                    <p class="text-xs text-slate-300 leading-relaxed mb-2">
+                        When PHP files (<code class="text-emerald-400 font-mono">config.php</code>) contain executable code, inclusion normally executes them instead of displaying raw source code. Using the Base64 filter wrapper encodes the source before execution:
+                    </p>
+                    <div class="bg-cyber-950 p-2.5 rounded border border-blue-500/40 text-xs font-mono text-blue-300 flex items-center justify-between">
+                        <span>php://filter/convert.base64-encode/resource=config.php</span>
+                        <button onclick="injectPayload('php://filter/convert.base64-encode/resource=config.php'); closeCheatSheet();" class="px-3 py-1 bg-blue-600 text-white hover:bg-blue-500 rounded text-xs transition-colors">Try Filter</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script -->
     <script>
-        // --- 1. Expanded File System Data (With New Web Content) ---
+        // --- 1. Expanded File System Data Structures ---
         
         const linuxFS = {
-            name: "root", type: "dir", children: {
-                "bin": { type: "dir", children: { "bash": {type:"file"}, "cat": {type:"file"}, "ls": {type:"file"}, "grep": {type:"file"}, "curl": {type:"file"}, "nano": {type:"file"}, "vi": {type:"file"}, "sudo": {type:"file"} } },
-                "boot": { type: "dir", children: { "vmlinuz-5.10": {type:"file"}, "grub": {type:"dir", children:{"grub.cfg": {type:"file"}}} } },
-                "dev": { type: "dir", children: { "null": {type:"file"}, "tty": {type:"file"}, "sda": {type:"file"}, "sda1": {type:"file"}, "random": {type:"file"} } },
+            name: "root", type: "dir", perms: "drwxr-xr-x", children: {
+                "bin": { type: "dir", perms: "drwxr-xr-x", children: { "bash": {type:"file", perms:"-rwxr-xr-x", size:"1.1 MB"}, "cat": {type:"file", perms:"-rwxr-xr-x", size:"43 KB"}, "ls": {type:"file", perms:"-rwxr-xr-x", size:"140 KB"}, "grep": {type:"file", perms:"-rwxr-xr-x", size:"210 KB"}, "curl": {type:"file", perms:"-rwxr-xr-x", size:"180 KB"}, "nano": {type:"file", perms:"-rwxr-xr-x", size:"320 KB"}, "sudo": {type:"file", perms:"-rwsr-xr-x", size:"175 KB"} } },
+                "boot": { type: "dir", perms: "drwxr-xr-x", children: { "vmlinuz-5.15": {type:"file", perms:"-rw-r--r--", size:"11 MB"}, "grub": {type:"dir", perms:"drwxr-xr-x", children:{"grub.cfg": {type:"file", perms:"-rw-r--r--", size:"8.4 KB"}}} } },
+                "dev": { type: "dir", perms: "drwxr-xr-x", children: { "null": {type:"file", perms:"crw-rw-rw-"}, "tty": {type:"file", perms:"crw-rw-rw-"}, "sda": {type:"file", perms:"brw-rw----"}, "random": {type:"file", perms:"crw-rw-rw-"} } },
                 "etc": {
-                    type: "dir", children: {
-                        "passwd": { type: "file", content: "root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\nbin:x:2:2:bin:/bin:/usr/sbin/nologin\nsys:x:3:3:sys:/dev:/usr/sbin/nologin\nwww-data:x:33:33:www-data:/var/www:/usr/sbin/nologin\nmysql:x:106:112:MySQL Server,,,:/nonexistent:/bin/false\nbob:x:1000:1000:bob:/home/bob:/bin/bash\nalice:x:1001:1001:alice:/home/alice:/bin/bash\ncharlie:x:1002:1002:charlie:/home/charlie:/bin/bash\ndave:x:1003:1003:dave:/home/dave:/bin/bash" },
-                        "shadow": { type: "file", content: "root:$6$h...:18000:0:99999:7:::\nbob:$6$fG8...:18000:0:99999:7:::\ncharlie:$6$x9...:18000:0:99999:7:::\n(Permission Denied)" },
-                        "group": { type: "file", content: "root:x:0:\nwww-data:x:33:\ndocker:x:999:" },
-                        "hostname": { type: "file", content: "production-server-01" },
-                        "hosts": { type: "file", content: "127.0.0.1\tlocalhost\n127.0.1.1\tlfi-lab\n10.0.0.5\tdb-server\n10.0.0.6\tbackup-server" },
-                        "resolv.conf": { type: "file", content: "nameserver 8.8.8.8\nnameserver 1.1.1.1" },
-                        "fstab": { type: "file", content: "# /etc/fstab: static file system information.\nUUID=1234-5678 / ext4 errors=remount-ro 0 1\nUUID=A1B2-C3D4 /boot/efi vfat umask=0077 0 1" },
-                        "sudoers": { type: "file", content: "root ALL=(ALL:ALL) ALL\n%admin ALL=(ALL) ALL\nbob ALL=(ALL) NOPASSWD: /usr/bin/python3" },
-                        "issue": { type: "file", content: "Ubuntu 22.04.1 LTS \\n \\l" },
-                        "network": { type: "dir", children: { "interfaces": { type: "file", content: "auto eth0\niface eth0 inet dhcp" } } },
-                        "os-release": { type: "file", content: "PRETTY_NAME=\"Ubuntu 22.04.1 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"22.04\"" },
-                        "apache2": { type: "dir", children: { "apache2.conf": {type:"file", content: "ServerRoot \"/etc/apache2\"\nUser ${APACHE_RUN_USER}\nGroup ${APACHE_RUN_GROUP}"}, "ports.conf": {type:"file", content: "Listen 80\nListen 443"} } },
-                        "nginx": { type: "dir", children: { "nginx.conf": {type:"file", content: "user www-data;\nworker_processes auto;"} } },
-                        "ssh": { type: "dir", children: { "sshd_config": {type:"file", content: "PermitRootLogin no\nPasswordAuthentication yes\nPort 22\nAllowUsers bob alice"} } },
-                        "mysql": { type: "dir", children: { "my.cnf": {type:"file", content: "[mysqld]\nuser = mysql\nbind-address = 127.0.0.1"} } },
-                        "cron.d": { type: "dir", children: { "php": {type:"file", content: "09,39 * * * * root [ -x /usr/lib/php/sessionclean ] && /usr/lib/php/sessionclean"}, "backup": {type:"file", content: "0 2 * * * root /usr/local/bin/backup.sh"} } }
+                    type: "dir", perms: "drwxr-xr-x", children: {
+                        "passwd": { type: "file", perms: "-rw-r--r--", size: "2.8 KB", content: "root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\nbin:x:2:2:bin:/bin:/usr/sbin/nologin\nsys:x:3:3:sys:/dev:/usr/sbin/nologin\nwww-data:x:33:33:www-data:/var/www:/usr/sbin/nologin\nmysql:x:106:112:MySQL Server,,,:/nonexistent:/bin/false\nbob:x:1000:1000:bob:/home/bob:/bin/bash\nalice:x:1001:1001:alice:/home/alice:/bin/bash\ncharlie:x:1002:1002:charlie:/home/charlie:/bin/bash\ndave:x:1003:1003:dave:/home/dave:/bin/bash" },
+                        "shadow": { type: "file", perms: "-rw-r-----", size: "1.2 KB", content: "root:$6$h8xK9pL2$qR7z...:18900:0:99999:7:::\nbob:$6$fG8mK2...:18900:0:99999:7:::\ncharlie:$6$x9pQ2...:18900:0:99999:7:::\n[Permission Denied - Restricted Root Access]" },
+                        "group": { type: "file", perms: "-rw-r--r--", size: "940 B", content: "root:x:0:\nwww-data:x:33:\ndocker:x:999:\nsudo:x:27:bob" },
+                        "hostname": { type: "file", perms: "-rw-r--r--", size: "18 B", content: "arenawebsec-prod-01" },
+                        "hosts": { type: "file", perms: "-rw-r--r--", size: "240 B", content: "127.0.0.1\tlocalhost\n127.0.1.1\tarenawebsec.lab\n10.0.0.5\tdb-cluster.internal\n10.0.0.6\tbackup-vault.internal" },
+                        "resolv.conf": { type: "file", perms: "-rw-r--r--", size: "85 B", content: "nameserver 8.8.8.8\nnameserver 1.1.1.1" },
+                        "fstab": { type: "file", perms: "-rw-r--r--", size: "640 B", content: "# /etc/fstab: static file system information.\nUUID=a849f102-4b21-4f91 / ext4 defaults 0 1\nUUID=B2C4-9A01 /boot/efi vfat defaults 0 1" },
+                        "sudoers": { type: "file", perms: "-r--r-----", size: "1.8 KB", content: "root ALL=(ALL:ALL) ALL\n%admin ALL=(ALL) ALL\nbob ALL=(ALL) NOPASSWD: /usr/bin/python3" },
+                        "issue": { type: "file", perms: "-rw-r--r--", size: "26 B", content: "Ubuntu 22.04.1 LTS \\n \\l" },
+                        "network": { type: "dir", perms: "drwxr-xr-x", children: { "interfaces": { type: "file", perms: "-rw-r--r--", size: "120 B", content: "auto eth0\niface eth0 inet dhcp" } } },
+                        "os-release": { type: "file", perms: "-rw-r--r--", size: "380 B", content: "PRETTY_NAME=\"Ubuntu 22.04.1 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"22.04\"" },
+                        "apache2": { type: "dir", perms: "drwxr-xr-x", children: { "apache2.conf": {type:"file", perms: "-rw-r--r--", size: "7.2 KB", content: "ServerRoot \"/etc/apache2\"\nUser ${APACHE_RUN_USER}\nGroup ${APACHE_RUN_GROUP}\nIncludeOptional mods-enabled/*.load"}, "ports.conf": {type:"file", perms: "-rw-r--r--", size: "320 B", content: "Listen 80\nListen 443"} } },
+                        "nginx": { type: "dir", perms: "drwxr-xr-x", children: { "nginx.conf": {type:"file", perms: "-rw-r--r--", size: "1.4 KB", content: "user www-data;\nworker_processes auto;"} } },
+                        "ssh": { type: "dir", perms: "drwxr-xr-x", children: { "sshd_config": {type:"file", perms: "-rw-r--r--", size: "3.1 KB", content: "PermitRootLogin no\nPasswordAuthentication yes\nPort 22\nAllowUsers bob alice"} } },
+                        "mysql": { type: "dir", perms: "drwxr-xr-x", children: { "my.cnf": {type:"file", perms: "-rw-r--r--", size: "890 B", content: "[mysqld]\nuser = mysql\nbind-address = 127.0.0.1"} } },
+                        "cron.d": { type: "dir", perms: "drwxr-xr-x", children: { "php": {type:"file", perms: "-rw-r--r--", size: "140 B", content: "09,39 * * * * root [ -x /usr/lib/php/sessionclean ] && /usr/lib/php/sessionclean"}, "backup": {type:"file", perms: "-rw-r--r--", size: "85 B", content: "0 2 * * * root /usr/local/bin/backup.sh"} } }
                     }
                 },
                 "home": {
-                    type: "dir", children: {
-                        "bob": { type: "dir", children: { "user.txt": {type:"file", content: "flag{user_access_level_1}"}, ".bash_history": {type:"file", content: "cd /var/www/html\nsudo service apache2 restart\nssh admin@10.0.0.5\ncat /etc/shadow"}, "notes.txt": {type:"file", content: "Meeting at 5PM."}, "Downloads": { type: "dir", children: { "exploit.py": {type:"file"} } } } },
-                        "alice": { type: "dir", children: { "project": {type:"dir", children:{"draft.md": {type:"file"}, "logo.png": {type:"file"}}}, ".ssh": {type:"dir", children:{"id_rsa": {type:"file", content:"-----BEGIN RSA PRIVATE KEY-----...\n(Keep this safe!)"}}} } },
-                        "charlie": { type: "dir", children: { "todo.md": {type:"file", content: "- Fix bug #404\n- Update kernel"}, "Documents": {type:"dir", children: {"resume.pdf": {type:"file"}}} } },
-                        "dave": { type: "dir", children: { ".profile": {type:"file"}, "bin": {type:"dir"} } }
+                    type: "dir", perms: "drwxr-xr-x", children: {
+                        "bob": { type: "dir", perms: "drwxr-xr-x", children: { "user.txt": {type:"file", perms: "-rw-r--r--", size: "26 B", cw: true, content: "cw{user_access_level_1}"}, ".bash_history": {type:"file", perms: "-rw-------", size: "420 B", content: "cd /var/www/html\nsudo service apache2 restart\nssh admin@10.0.0.5\ncat /etc/shadow\npython3 exploit.py"}, "notes.txt": {type:"file", perms: "-rw-r--r--", size: "110 B", content: "Security Audit scheduled for Friday. Remind Alice to cycle DB passwords."}, "Downloads": { type: "dir", perms: "drwxr-xr-x", children: { "exploit.py": {type:"file", perms: "-rwxr-xr-x", size: "1.4 KB", content: "# LFI Exploit Helper Script\nimport requests\nr = requests.get('http://127.0.0.1/index.php?page=../../../../etc/passwd')\nprint(r.text)"} } } } },
+                        "alice": { type: "dir", perms: "drwxr-xr-x", children: { "project": {type:"dir", perms: "drwxr-xr-x", children:{"draft.md": {type:"file", perms: "-rw-r--r--", size: "650 B"}}}, ".ssh": {type:"dir", perms: "drwx------", children:{"id_rsa": {type:"file", perms: "-rw-------", size: "1.8 KB", content:"-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEAz81nK... ArenaWebSec Deployment Key\n(Confidential Private Key)"}}} } },
+                        "charlie": { type: "dir", perms: "drwxr-xr-x", children: { "todo.md": {type:"file", perms: "-rw-r--r--", size: "180 B", content: "- Patch PHP LFI Vulnerability\n- Upgrade Linux Kernel\n- Configure Web Application Firewall"} } },
+                        "dave": { type: "dir", perms: "drwxr-xr-x", children: { ".profile": {type:"file", perms: "-rw-r--r--", size: "800 B"} } }
                     }
                 },
-                "lib": { type: "dir", children: { "modules": {type:"dir"}, "systemd": {type:"dir"} } },
-                "media": { type: "dir", children: { "cdrom": {type:"dir"} } },
-                "mnt": { type: "dir", children: { "usb": {type:"dir"}, "backup_drive": {type:"dir"} } },
-                "opt": { type: "dir", children: { "lampp": {type:"dir"}, "splunk": {type:"dir", children: { "etc": {type:"dir", children: { "system": {type:"dir", children: { "local": {type:"dir", children: {"inputs.conf": {type:"file"}}} } } } } } }, "docker": {type:"dir"} } },
+                "lib": { type: "dir", perms: "drwxr-xr-x", children: { "modules": {type:"dir", perms: "drwxr-xr-x"}, "systemd": {type:"dir", perms: "drwxr-xr-x"} } },
+                "mnt": { type: "dir", perms: "drwxr-xr-x", children: { "backup_drive": {type:"dir", perms: "drwxr-xr-x"} } },
+                "opt": { type: "dir", perms: "drwxr-xr-x", children: { "arenawebsec": {type:"dir", perms: "drwxr-xr-x", children: { "security_scanner.sh": {type:"file", perms: "-rwxr-xr-x", size: "2.4 KB", content: "#!/bin/bash\necho 'Running vulnerability scanner...'"} } } } },
                 "proc": {
-                    type: "dir", children: {
-                        "self": { type: "dir", children: { "environ": { type: "file", content: "HTTP_USER_AGENT=Mozilla/5.0... \nPATH=/usr/local/sbin:/usr/local/bin\nDOCUMENT_ROOT=/var/www/html\nDB_PASS=S3cur3P@ssw0rd!"}, "cmdline": { type: "file", content: "/usr/sbin/apache2 -k start"} } },
-                        "version": { type: "file", content: "Linux version 5.15.0-56-generic (buildd@lcy02-amd64-073)" },
-                        "cpuinfo": { type: "file", content: "processor: 0\nvendor_id: GenuineIntel\nmodel name: Intel(R) Xeon(R) CPU" },
-                        "meminfo": { type: "file", content: "MemTotal: 16384000 kB\nMemFree: 2048000 kB" },
-                        "mounts": { type: "file", content: "/dev/sda1 / ext4 rw 0 0\nproc /proc proc rw 0 0" },
-                        "sched_debug": { type: "file", content: "Sched Debug Info..." }
+                    type: "dir", perms: "dr-xr-xr-x", children: {
+                        "self": { type: "dir", perms: "dr-xr-xr-x", children: { "environ": { type: "file", perms: "-r--------", size: "1.1 KB", content: "HTTP_USER_AGENT=Mozilla/5.0 (Windows NT 10.0; Win64; x64) ArenaWebSec/5.0\nPATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin\nDOCUMENT_ROOT=/var/www/html\nDB_HOST=10.0.0.5\nDB_USER=arena_admin\nDB_PASS=S3cur3P@ssw0rd!Arena2026\nSECRET_KEY=a7f9b8c3d2e1f4a5b" }, "cmdline": { type: "file", perms: "-r--------", size: "45 B", content: "/usr/sbin/apache2 -k start" } } },
+                        "version": { type: "file", perms: "-r--r--r--", size: "120 B", content: "Linux version 5.15.0-56-generic (buildd@lcy02-amd64-073) (gcc version 11.2.0)" },
+                        "cpuinfo": { type: "file", perms: "-r--r--r--", size: "850 B", content: "processor\t: 0\nvendor_id\t: GenuineIntel\nmodel name\t: Intel(R) Xeon(R) Platinum 8375C CPU @ 2.90GHz\ncores\t\t: 4" },
+                        "meminfo": { type: "file", perms: "-r--r--r--", size: "640 B", content: "MemTotal:\t16384000 kB\nMemFree:\t2048000 kB\nMemAvailable:\t12400000 kB" },
+                        "mounts": { type: "file", perms: "-r--r--r--", size: "480 B", content: "/dev/sda1 / ext4 rw,relatime 0 0\nproc /proc proc rw,nosuid,nodev,noexec 0 0" }
                     }
                 },
-                "root": { type: "dir", children: { "root.txt": {type:"file", content: "flag{root_privilege_escalation_master}"}, ".bashrc": {type:"file", content: "export PATH=$PATH:/root/bin"}, ".ssh": {type:"dir", children: {"authorized_keys": {type:"file"}}} } },
-                "run": { type: "dir", children: { "apache2.pid": {type:"file", content: "1024"}, "sshd.pid": {type:"file", content: "882"} } },
-                "tmp": { type: "dir", children: { "sess_a7b8c9": {type:"file", content: "user|s:5:\"admin\";role|s:4:\"root\";"}, "systemd-private-xyz": {type:"dir"}, "vmware-root": {type:"dir"} } },
+                "root": { type: "dir", perms: "drwx------", children: { "root.txt": {type:"file", perms: "-rw-------", size: "40 B", cw: true, content: "cw{root_privilege_escalation_master}"}, ".bashrc": {type:"file", perms: "-rw-r--r--", size: "3.7 KB", content: "export PATH=$PATH:/root/bin"}, ".ssh": {type:"dir", perms: "drwx------", children: {"authorized_keys": {type:"file", perms: "-rw-------", size: "400 B"}}} } },
+                "run": { type: "dir", perms: "drwxr-xr-x", children: { "apache2.pid": {type:"file", perms: "-rw-r--r--", size: "5 B", content: "1024"}, "sshd.pid": {type:"file", perms: "-rw-r--r--", size: "4 B", content: "882"} } },
+                "tmp": { type: "dir", perms: "drwxrwxrwt", children: { "sess_a7b8c9d0": {type:"file", perms: "-rw-------", size: "140 B", content: "user|s:5:\"admin\";role|s:4:\"root\";auth_token|s:32:\"9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c\";"}, "vmware-root": {type:"dir", perms: "drwx------"} } },
                 "usr": {
-                    type: "dir", children: {
-                        "bin": { type: "dir", children: { "python3": {type:"file"}, "perl": {type:"file"}, "wget": {type:"file"}, "curl": {type:"file"}, "gcc": {type:"file"} } },
-                        "share": { type: "dir", children: { "wordlists": {type:"dir", children: {"rockyou.txt": {type:"file"}, "dirb": {type:"dir", children: {"common.txt": {type:"file"}}} }}, "nmap": {type:"dir"}, "nginx": {type:"dir", children: {"html": {type:"dir", children: {"index.html": {type:"file", content: "Welcome to nginx!"}}}}} } },
-                        "local": { type: "dir", children: { "bin": {type:"dir"} } }
+                    type: "dir", perms: "drwxr-xr-x", children: {
+                        "bin": { type: "dir", perms: "drwxr-xr-x", children: { "python3": {type:"file"}, "perl": {type:"file"}, "wget": {type:"file"}, "curl": {type:"file"}, "gcc": {type:"file"} } },
+                        "share": { type: "dir", perms: "drwxr-xr-x", children: { "wordlists": {type:"dir", perms: "drwxr-xr-x", children: {"rockyou.txt": {type:"file", perms: "-rw-r--r--", size: "133 MB"}, "dirb": {type:"dir", perms: "drwxr-xr-x", children: {"common.txt": {type:"file", perms: "-rw-r--r--", size: "480 KB"}}} }} } }
                     }
                 },
                 "var": {
-                    type: "dir", children: {
+                    type: "dir", perms: "drwxr-xr-x", children: {
                         "www": {
-                            type: "dir", children: {
+                            type: "dir", perms: "drwxr-xr-x", children: {
                                 "html": {
-                                    type: "dir", children: {
-                                        "index.php": { type: "file", content: "<?php\n  $page = $_GET['page'];\n  include($page);\n?>" },
-                                        "home.php": { type: "file", content: "<h1>Welcome to SecureCorp</h1><p>We provide the best security solutions in the world. Our architecture is unhackable.</p><img src='https://images.unsplash.com/photo-1550751827-4bd374c3f58b?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60' class='rounded my-4 w-full h-48 object-cover'><p>Our new firewall is state-of-the-art.</p>" },
-                                        "about.php": { type: "file", content: "<h1>About Us</h1><p>SecureCorp was founded in 2023 with a mission to secure the internet.</p><h2>Our Team</h2><ul><li>Bob - Sysadmin</li><li>Alice - Developer</li><li>Eve - Security Researcher</li></ul>" },
-                                        "services.php": { type: "file", content: "<h1>Our Services</h1><div class='grid grid-cols-1 md:grid-cols-2 gap-4 mt-6'><div class='p-4 bg-blue-50 border border-blue-100 rounded'><i class='fa-solid fa-shield-cat text-2xl text-blue-500 mb-2'></i><h3 class='font-bold'>Penetration Testing</h3><p class='text-xs text-slate-500 mt-1'>We break it so you can fix it.</p></div><div class='p-4 bg-emerald-50 border border-emerald-100 rounded'><i class='fa-solid fa-code text-2xl text-emerald-500 mb-2'></i><h3 class='font-bold'>Code Audits</h3><p class='text-xs text-slate-500 mt-1'>Secure your source code.</p></div><div class='p-4 bg-purple-50 border border-purple-100 rounded'><i class='fa-solid fa-server text-2xl text-purple-500 mb-2'></i><h3 class='font-bold'>Cloud Security</h3><p class='text-xs text-slate-500 mt-1'>AWS, Azure, GCP hardening.</p></div></div>" },
-                                        "news.php": { type: "file", content: "<h1>Latest News</h1><article class='mb-4 pb-4 border-b border-slate-100'><h3 class='font-bold text-blue-600'>New Office in NYC</h3><span class='text-xs text-slate-400'>Oct 24, 2023</span><p class='mt-1 text-sm'>We are expanding our operations to the east coast.</p></article><article><h3 class='font-bold text-blue-600'>Q3 Financial Results</h3><span class='text-xs text-slate-400'>Sep 15, 2023</span><p class='mt-1 text-sm'>SecureCorp reports 200% growth in revenue.</p></article>" },
-                                        "contact.php": { type: "file", content: "<h1>Contact Us</h1><p>Email: <b>admin@lfi.lab</b></p><div class='mt-4 p-4 bg-yellow-100 rounded text-yellow-800'>Note: Support is offline.</div><p class='mt-4 text-xs text-slate-400'>Office: 123 Security Blvd, Cyber City</p>" },
-                                        "careers.php": { type: "file", content: "<h1>Careers</h1><p>Join our team!</p><ul class='mt-2'><li>Junior Pentester (Remote)</li><li>Security Analyst (On-site)</li></ul><div class='mt-4 p-3 bg-gray-100 rounded border border-gray-300'><h4 class='font-bold text-xs uppercase text-gray-500'>Upload CV</h4><p class='text-xs text-red-500 italic mt-1'>Upload functionality temporarily disabled due to security audit.</p></div>" },
-                                        "gallery.php": { type: "file", content: "<h1>Gallery</h1><p>Our office spaces.</p><div class='grid grid-cols-2 gap-4 mt-4'><div class='bg-gray-300 h-32 rounded flex items-center justify-center text-gray-500'>Office 1</div><div class='bg-gray-300 h-32 rounded flex items-center justify-center text-gray-500'>Office 2</div><div class='bg-gray-300 h-32 rounded flex items-center justify-center text-gray-500'>Server Room</div><div class='bg-gray-300 h-32 rounded flex items-center justify-center text-gray-500'>Lounge</div></div>" },
-                                        "config.php": { type: "file", content: "<?php\n $db_host='localhost';\n $db_user='root';\n $db_pass='MyS3cur3SQL!';\n?>" },
-                                        "robots.txt": { type: "file", content: "User-agent: *\nDisallow: /admin\nDisallow: /backups\nDisallow: /dev" },
-                                        "admin": { type: "dir", children: { "index.php": {type:"file", content: "Login Form"}, "logs.php": {type:"file"} } }
+                                    type: "dir", perms: "drwxr-xr-x", children: {
+                                        "index.php": { type: "file", perms: "-rw-r--r--", size: "180 B", content: "<?php\n  // ArenaWebSec Vulnerable LFI Portal\n  $page = $_GET['page'];\n  include($page);\n?>" },
+                                        "home.php": { type: "file", perms: "-rw-r--r--", size: "1.2 KB", content: "<div class='space-y-6'><div class='bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-8 rounded-2xl shadow-lg border border-indigo-900/40 relative overflow-hidden'><div class='absolute -right-6 -bottom-6 text-indigo-500/10 text-9xl'><i class='fa-solid fa-shield-halved'></i></div><span class='px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-full border border-emerald-500/30 uppercase tracking-wider mb-3 inline-block'>Enterprise Cyber Defense</span><h1 class='text-3xl font-extrabold text-white mb-3 tracking-tight'>Welcome to ArenaWebSec</h1><p class='text-slate-300 text-base max-w-2xl leading-relaxed'>We deliver next-generation threat intelligence, cloud vulnerability assessments, and automated penetration testing for global enterprises.</p><div class='mt-6 flex flex-wrap gap-3'><a onclick=\"navigateToPage('services.php')\" class='px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg shadow-md transition-all no-underline inline-flex items-center gap-2'>Explore Services <i class='fa-solid fa-arrow-right text-xs'></i></a><a onclick=\"navigateToPage('contact.php')\" class='px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-lg border border-slate-700 transition-all no-underline'>Contact Security Team</a></div></div><div class='grid grid-cols-1 md:grid-cols-3 gap-5 mt-6'><div class='p-5 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow'><div class='w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center mb-3 text-lg'><i class='fa-solid fa-bug'></i></div><h3 class='font-bold text-slate-800 text-base'>Zero-Day Detection</h3><p class='text-xs text-slate-500 mt-2 leading-relaxed'>Automated vulnerability correlation and heuristic exploit prevention.</p></div><div class='p-5 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow'><div class='w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3 text-lg'><i class='fa-solid fa-lock'></i></div><h3 class='font-bold text-slate-800 text-base'>Cloud Hardening</h3><p class='text-xs text-slate-500 mt-2 leading-relaxed'>Continuous compliance auditing across AWS, Azure, and Google Cloud.</p></div><div class='p-5 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow'><div class='w-10 h-10 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center mb-3 text-lg'><i class='fa-solid fa-user-shield'></i></div><h3 class='font-bold text-slate-800 text-base'>SOC Incident Response</h3><p class='text-xs text-slate-500 mt-2 leading-relaxed'>24/7 Managed Security Operations Center with real-time threat containment.</p></div></div></div>" },
+                                        "about.php": { type: "file", perms: "-rw-r--r--", size: "950 B", content: "<div class='space-y-6'><div><h1 class='text-2xl font-bold text-slate-900'>About ArenaWebSec</h1><p class='text-slate-600 leading-relaxed mt-2'>Founded in 2024 by elite offensive security researchers, ArenaWebSec empowers organizations to test, validate, and harden their infrastructure against advanced cyber threats.</p></div><div class='border-t border-slate-200 pt-6'><h2 class='text-lg font-bold text-slate-800 mb-4'>Security Leadership Team</h2><div class='grid grid-cols-1 sm:grid-cols-3 gap-4'><div class='p-4 bg-slate-50 rounded-xl border border-slate-200 text-center'><div class='w-14 h-14 rounded-full bg-blue-600 text-white font-bold text-xl flex items-center justify-center mx-auto mb-2 shadow'>B</div><h4 class='font-bold text-slate-800 text-sm'>Bob Martinez</h4><p class='text-xs text-slate-500'>Lead Infrastructure Sysadmin</p></div><div class='p-4 bg-slate-50 rounded-xl border border-slate-200 text-center'><div class='w-14 h-14 rounded-full bg-emerald-600 text-white font-bold text-xl flex items-center justify-center mx-auto mb-2 shadow'>A</div><h4 class='font-bold text-slate-800 text-sm'>Alice Vance</h4><p class='text-xs text-slate-500'>Head of Application Security</p></div><div class='p-4 bg-slate-50 rounded-xl border border-slate-200 text-center'><div class='w-14 h-14 rounded-full bg-purple-600 text-white font-bold text-xl flex items-center justify-center mx-auto mb-2 shadow'>E</div><h4 class='font-bold text-slate-800 text-sm'>Eve Redwood</h4><p class='text-xs text-slate-500'>Principal Red Teamer</p></div></div></div></div>" },
+                                        "services.php": { type: "file", perms: "-rw-r--r--", size: "1.4 KB", content: "<div class='space-y-6'><div><h1 class='text-2xl font-bold text-slate-900'>Offensive & Defensive Security Services</h1><p class='text-slate-600 text-sm mt-1'>Comprehensive security audits tailored to modern enterprise stacks.</p></div><div class='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'><div class='p-5 bg-blue-50/60 border border-blue-200/80 rounded-xl flex gap-4'><div class='text-blue-600 text-3xl'><i class='fa-solid fa-shield-cat'></i></div><div><h3 class='font-bold text-slate-900 text-base'>Penetration Testing</h3><p class='text-xs text-slate-600 mt-1 leading-relaxed'>Full-scope web, API, and network penetration testing identifying vulnerabilities before attackers do.</p></div></div><div class='p-5 bg-emerald-50/60 border border-emerald-200/80 rounded-xl flex gap-4'><div class='text-emerald-600 text-3xl'><i class='fa-solid fa-code-compare'></i></div><div><h3 class='font-bold text-slate-900 text-base'>Source Code Auditing</h3><p class='text-xs text-slate-600 mt-1 leading-relaxed'>Static & dynamic analysis (SAST/DAST) targeting logic flaws, injection vulnerabilities, and bad practices.</p></div></div><div class='p-5 bg-purple-50/60 border border-purple-200/80 rounded-xl flex gap-4'><div class='text-purple-600 text-3xl'><i class='fa-solid fa-server'></i></div><div><h3 class='font-bold text-slate-900 text-base'>Cloud Architecture Security</h3><p class='text-xs text-slate-600 mt-1 leading-relaxed'>IAM policy reviews, Kubernetes container hardening, and serverless security posture management.</p></div></div><div class='p-5 bg-amber-50/60 border border-amber-200/80 rounded-xl flex gap-4'><div class='text-amber-600 text-3xl'><i class='fa-solid fa-user-ninja'></i></div><div><h3 class='font-bold text-slate-900 text-base'>Red Team Simulations</h3><p class='text-xs text-slate-600 mt-1 leading-relaxed'>Multi-layered adversary simulation testing organizational resilience and SOC detection speed.</p></div></div></div></div>" },
+                                        "news.php": { type: "file", perms: "-rw-r--r--", size: "820 B", content: "<div class='space-y-4'><div><h1 class='text-2xl font-bold text-slate-900'>Security Advisories & News</h1><p class='text-xs text-slate-500 mt-1'>Latest insights from the ArenaWebSec Threat Intelligence Lab</p></div><div class='space-y-3 mt-4'><article class='p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-blue-300 transition-colors'><div class='flex justify-between items-start'><h3 class='font-bold text-blue-600 text-base'>ArenaWebSec Releases LFI Simulation Benchmark v5.0</h3><span class='text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-blue-100 text-blue-700'>Press Release</span></div><span class='text-xs text-slate-400 block mt-1'>August 2026</span><p class='mt-2 text-xs text-slate-600 leading-relaxed'>Our interactive LFI training sandbox helps security engineers practice identifying and remediating path traversal flaws.</p></article><article class='p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-blue-300 transition-colors'><div class='flex justify-between items-start'><h3 class='font-bold text-slate-900 text-base'>Critical Advisory: Path Traversal Vulnerabilities in PHP Applications</h3><span class='text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-rose-100 text-rose-700'>Security Threat</span></div><span class='text-xs text-slate-400 block mt-1'>July 2026</span><p class='mt-2 text-xs text-slate-600 leading-relaxed'>Unsanitized include statements remain a top entry vector for internal credential theft and remote code execution.</p></article></div></div>" },
+                                        "contact.php": { type: "file", perms: "-rw-r--r--", size: "640 B", content: "<div class='space-y-4'><div><h1 class='text-2xl font-bold text-slate-900'>Contact Security Team</h1><p class='text-slate-600 text-sm mt-1'>For urgent incident response or audit inquiries:</p></div><div class='p-4 bg-slate-900 text-white rounded-xl shadow-md border border-slate-800 space-y-2 font-mono text-xs'><p><span class='text-emerald-400 font-bold'>Security Operations Desk:</span> soc@arenawebsec.lab</p><p><span class='text-cyan-400 font-bold'>PGP Key Fingerprint:</span> 4B89 2C10 9E8F 7721 A054</p><p><span class='text-amber-400 font-bold'>Encrypted Line:</span> +1 (800) 555-CYBER</p></div><div class='p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 flex items-center gap-2'><i class='fa-solid fa-circle-info text-amber-600 text-sm'></i><span>Support Ticket System is undergoing scheduled maintenance.</span></div></div>" },
+                                        "careers.php": { type: "file", perms: "-rw-r--r--", size: "710 B", content: "<div class='space-y-4'><div><h1 class='text-2xl font-bold text-slate-900'>Careers at ArenaWebSec</h1><p class='text-slate-600 text-sm mt-1'>Join our team of offensive security specialists.</p></div><div class='space-y-2 mt-4'><div class='p-4 bg-white border border-slate-200 rounded-xl flex justify-between items-center'><div font-bold><h4 class='font-bold text-slate-800 text-sm'>Senior Web Security Researcher</h4><span class='text-xs text-slate-400'>Remote • Full-time</span></div><span class='px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full'>Open</span></div><div class='p-4 bg-white border border-slate-200 rounded-xl flex justify-between items-center'><div font-bold><h4 class='font-bold text-slate-800 text-sm'>SOC Tier 2 Incident Analyst</h4><span class='text-xs text-slate-400'>Austin, TX • Hybrid</span></div><span class='px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full'>Open</span></div></div></div>" },
+                                        "gallery.php": { type: "file", perms: "-rw-r--r--", size: "520 B", content: "<div class='space-y-4'><div><h1 class='text-2xl font-bold text-slate-900'>Operations Center & Facilities</h1></div><div class='grid grid-cols-2 gap-4 mt-4'><div class='bg-slate-800 h-32 rounded-xl flex flex-col items-center justify-center text-slate-300 shadow font-mono text-xs'><i class='fa-solid fa-server text-emerald-400 text-2xl mb-1'></i>Data Center Tier IV</div><div class='bg-slate-800 h-32 rounded-xl flex flex-col items-center justify-center text-slate-300 shadow font-mono text-xs'><i class='fa-solid fa-desktop text-cyan-400 text-2xl mb-1'></i>SOC War Room</div></div></div>" },
+                                        "config.php": { type: "file", perms: "-rw-r--r--", size: "210 B", content: "<?php\n  // ArenaWebSec Internal Database Configuration\n  $db_host = '10.0.0.5';\n  $db_user = 'arena_admin';\n  $db_pass = 'S3cur3P@ssw0rd!Arena2026';\n  $db_name = 'arenawebsec_db';\n?>" },
+                                        "robots.txt": { type: "file", perms: "-rw-r--r--", size: "80 B", content: "User-agent: *\nDisallow: /admin\nDisallow: /backups\nDisallow: /config.php" },
+                                        "admin": { type: "dir", perms: "drwxr-xr-x", children: { "index.php": {type:"file", perms: "-rw-r--r--", size: "450 B", content: "<h1>Admin Gateway</h1><form><input type='text' placeholder='Username'><input type='password' placeholder='Password'></form>"}, "logs.php": {type:"file", perms: "-rw-r--r--", size: "1.1 KB"} } }
                                     }
                                 }
                             }
                         },
                         "log": { 
-                            type: "dir", children: { 
-                                "apache2": { type: "dir", children: { "access.log": {type:"file", content: "192.168.1.10 - - [10/Oct/2023:14:00:01 +0000] \"GET /index.php?page=home.php HTTP/1.1\" 200 1234\n192.168.1.10 - - [10/Oct/2023:14:05:22 +0000] \"GET /index.php?page=../../etc/passwd HTTP/1.1\" 200 892"}, "error.log": {type:"file"} } },
-                                "auth.log": { type: "file", content: "Oct 10 12:00:01 server sshd[1234]: Failed password for invalid user admin from 192.168.1.20 port 22 ssh2\nOct 10 12:01:00 server sudo: bob : TTY=pts/0 ; PWD=/home/bob ; USER=root ; COMMAND=/usr/bin/cat /etc/shadow" },
-                                "syslog": { type: "file", content: "Oct 10 08:00:01 server systemd[1]: Started Daily apt upgrade and clean activities." },
-                                "kern.log": { type: "file", content: "Oct 10 07:55:00 server kernel: [    0.000000] Linux version 5.15.0-56-generic" },
-                                "dpkg.log": { type: "file", content: "2023-10-01 10:00:00 install curl:amd64 7.81.0-1ubuntu1.6" },
-                                "mysql": { type: "dir", children: { "error.log": {type:"file"} } }
+                            type: "dir", perms: "drwxr-xr-x", children: { 
+                                "apache2": { type: "dir", perms: "drwxr-xr-x", children: { "access.log": {type:"file", perms: "-rw-r--r--", size: "4.8 KB", content: "192.168.1.10 - - [10/Aug/2026:14:00:01 +0000] \"GET /index.php?page=home.php HTTP/1.1\" 200 1234\n192.168.1.10 - - [10/Aug/2026:14:05:22 +0000] \"GET /index.php?page=../../etc/passwd HTTP/1.1\" 200 892\n192.168.1.45 - - [10/Aug/2026:14:10:00 +0000] \"GET /index.php?page=php://filter/convert.base64-encode/resource=config.php HTTP/1.1\" 200 1420"}, "error.log": {type:"file", perms: "-rw-r--r--", size: "1.2 KB"} } },
+                                "auth.log": { type: "file", perms: "-rw-r-----", size: "2.1 KB", content: "Aug 10 12:00:01 server sshd[1234]: Failed password for invalid user admin from 192.168.1.20 port 22 ssh2\nAug 10 12:01:00 server sudo: bob : TTY=pts/0 ; PWD=/home/bob ; USER=root ; COMMAND=/usr/bin/cat /etc/shadow" },
+                                "syslog": { type: "file", perms: "-rw-r--r--", size: "8.5 KB", content: "Aug 10 08:00:01 server systemd[1]: Started Daily apt upgrade and clean activities." }
                             } 
                         },
-                        "mail": { type: "dir", children: { "root": {type:"file", content: "Subject: Daily Report\nSystem is healthy."}, "bob": {type:"file"} } },
-                        "backups": { type: "dir", children: { "db_backup.sql": {type:"file", content: "INSERT INTO users (user, pass) VALUES ('admin', 'md5_hash_here');"} } }
+                        "backups": { type: "dir", perms: "drwxr-xr-x", children: { "db_backup.sql": {type:"file", perms: "-rw-r--r--", size: "14.2 KB", content: "INSERT INTO users (id, username, password_hash) VALUES (1, 'admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918');"} } }
                     }
                 }
             }
         };
 
         const windowsFS = {
-            name: "C:", type: "dir", children: {
+            name: "C:", type: "dir", perms: "drwxrwxrwx", children: {
                 "Windows": {
-                    type: "dir", children: {
+                    type: "dir", perms: "drwxr-xr-x", children: {
                         "System32": { 
-                            type: "dir", children: { 
-                                "drivers": { type: "dir", children: { "etc": { type: "dir", children: { "hosts": { type: "file", content: "127.0.0.1 localhost\n::1 localhost" }, "networks": {type:"file"}, "services": {type:"file", content: "http 80/tcp\nhttps 443/tcp"}, "protocol": {type:"file"} } } } }, 
-                                "config": { type: "dir", children: { "SAM": {type:"file", content: "[Binary Encrypted SAM Database]"}, "SYSTEM": {type:"file"}, "SECURITY": {type:"file"}, "SOFTWARE": {type:"file"} } },
-                                "cmd.exe": { type: "file" }, "net.exe": { type: "file" }, "ipconfig.exe": { type: "file" }, "whoami.exe": { type: "file" }, "powershell.exe": { type: "file" }
+                            type: "dir", perms: "drwxr-xr-x", children: { 
+                                "drivers": { type: "dir", perms: "drwxr-xr-x", children: { "etc": { type: "dir", perms: "drwxr-xr-x", children: { "hosts": { type: "file", perms: "-rw-r--r--", size: "380 B", content: "127.0.0.1 localhost\n::1 localhost\n10.0.0.5 win-db.arenawebsec.local\n10.0.0.8 ad-dc01.arenawebsec.local" }, "lmhosts.sam": {type:"file", perms: "-rw-r--r--", size: "850 B"}, "networks": {type:"file", perms: "-rw-r--r--", size: "120 B"}, "protocol": {type:"file", perms: "-rw-r--r--", size: "1.2 KB"}, "services": {type:"file", perms: "-rw-r--r--", size: "14 KB", content: "http 80/tcp\nhttps 443/tcp\nmicrosoft-ds 445/tcp\nldap 389/tcp"} } } } }, 
+                                "config": { type: "dir", perms: "drwx------", children: { "SAM": {type:"file", perms: "-rw-------", size: "260 KB", content: "[Binary Encrypted SAM Database - Security Account Manager]\nAdministrator:500:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::\nGuest:501:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::"}, "SYSTEM": {type:"file", perms: "-rw-------", size: "4.2 MB"}, "SECURITY": {type:"file", perms: "-rw-------", size: "1.1 MB"}, "SOFTWARE": {type:"file", perms: "-rw-------", size: "18.5 MB"}, "DEFAULT": {type:"file", perms: "-rw-------", size: "2.4 MB"} } },
+                                "cmd.exe": { type: "file", perms: "-rwxr-xr-x", size: "280 KB" }, "powershell.exe": { type: "file", perms: "-rwxr-xr-x", size: "450 KB" }, "whoami.exe": { type: "file", perms: "-rwxr-xr-x", size: "65 KB" }, "ipconfig.exe": { type: "file", perms: "-rwxr-xr-x", size: "95 KB" }, "net.exe": { type: "file", perms: "-rwxr-xr-x", size: "120 KB" }
                             } 
                         },
-                        "win.ini": { type: "file", content: "; for 16-bit app support\n[fonts]\n[extensions]\n[files]\n[Mail]\nMAPI=1" },
-                        "boot.ini": { type: "file", content: "[boot loader]\ntimeout=30\ndefault=multi(0)disk(0)rdisk(0)partition(1)\\WINDOWS" },
-                        "PFRO.log": { type: "file", content: "Pending File Rename Operations Log" },
-                        "WindowsUpdate.log": { type: "file", content: "2023-10-01 10:00:00	Content Install	Download succeeded." },
-                        "Temp": { type: "dir", children: { "tmp.log": {type:"file"} } },
-                        "Tasks": { type: "dir", children: { "GoogleUpdate.job": {type:"file"} } }
+                        "win.ini": { type: "file", perms: "-rw-r--r--", size: "450 B", content: "; for 16-bit app support\n[fonts]\n[extensions]\n[files]\n[Mail]\nMAPI=1\nCMCDLLNAME32=mapi32.dll\n[ArenaWebSec]\nEnvironment=WindowsServer2019\nDatacenterEdition=1" },
+                        "boot.ini": { type: "file", perms: "-rw-r--r--", size: "210 B", content: "[boot loader]\ntimeout=30\ndefault=multi(0)disk(0)rdisk(0)partition(1)\\WINDOWS" },
+                        "PFRO.log": { type: "file", perms: "-rw-r--r--", size: "1.8 KB", content: "Pending File Rename Operations Log\n2026-08-10 10:00:00 - Pending File Rename Operations initialized." },
+                        "WindowsUpdate.log": { type: "file", perms: "-rw-r--r--", size: "14.5 KB", content: "2026-08-01 10:00:00 KB5012345 Install Succeeded." },
+                        "setupact.log": { type: "file", perms: "-rw-r--r--", size: "8.2 KB", content: "Windows Installation Setup Action Log" },
+                        "Temp": { type: "dir", perms: "drwxrwxrwx", children: { "tmp.log": {type:"file", perms: "-rw-r--r--", size: "420 B"} } },
+                        "Tasks": { type: "dir", perms: "drwxr-xr-x", children: { "GoogleUpdate.job": {type:"file", perms: "-rw-r--r--", size: "850 B"} } }
                     }
                 },
                 "Program Files": {
-                    type: "dir", children: {
-                        "Windows Defender": { type: "dir", children: {} },
-                        "Internet Explorer": { type: "dir", children: { "iexplore.exe": {type:"file"} } },
-                        "VideoLAN": { type: "dir", children: { "VLC": {type:"dir", children: {"vlc.exe": {type:"file"}}} } },
-                        "Mozilla Firefox": { type: "dir", children: { "firefox.exe": {type:"file"} } },
-                        "Git": { type: "dir", children: { "bin": {type:"dir", children: {"git.exe": {type:"file"}}} } }
+                    type: "dir", perms: "drwxr-xr-x", children: {
+                        "Windows Defender": { type: "dir", perms: "drwxr-xr-x", children: { "MSASCui.exe": {type:"file", perms: "-rwxr-xr-x", size: "1.2 MB"} } },
+                        "Internet Explorer": { type: "dir", perms: "drwxr-xr-x", children: { "iexplore.exe": {type:"file", perms: "-rwxr-xr-x", size: "820 KB"} } },
+                        "Git": { type: "dir", perms: "drwxr-xr-x", children: { "bin": {type:"dir", perms: "drwxr-xr-x", children: {"git.exe": {type:"file", perms: "-rwxr-xr-x", size: "2.1 MB"}}} } }
                     }
                 },
                 "Program Files (x86)": {
-                    type: "dir", children: {
-                        "Notepad++": { type: "dir", children: { "notepad++.exe": {type:"file"}, "config.xml": {type:"file"} } },
-                        "Google": { type: "dir", children: { "Chrome": {type:"dir"} } }
+                    type: "dir", perms: "drwxr-xr-x", children: {
+                        "Notepad++": { type: "dir", perms: "drwxr-xr-x", children: { "notepad++.exe": {type:"file", perms: "-rwxr-xr-x", size: "3.4 MB"}, "config.xml": {type:"file", perms: "-rw-r--r--", size: "8.5 KB"} } },
+                        "Google": { type: "dir", perms: "drwxr-xr-x", children: { "Chrome": {type:"dir", perms: "drwxr-xr-x", children: {"chrome.exe": {type:"file", perms: "-rwxr-xr-x", size: "2.8 MB"}}} } }
                     }
                 },
                 "xampp": {
-                    type: "dir", children: {
+                    type: "dir", perms: "drwxr-xr-x", children: {
                         "htdocs": {
-                            type: "dir", children: {
-                                "index.php": { type: "file", content: "<?php include($_GET['file']); ?>" },
-                                "home.php": { type: "file", content: "<h1>Windows Server IIS/Apache</h1><p>Welcome to the corporate intranet.</p><p>Check the News page for updates.</p>" },
-                                "about.php": { type: "file", content: "<h1>About Intranet</h1><p>This server is running on Windows Server 2019.</p>" },
-                                "services.php": { type: "file", content: "<h1>Internal Services</h1><ul><li>Active Directory</li><li>Exchange Server</li><li>File Share (SMB)</li></ul>" },
-                                "news.php": { type: "file", content: "<h1>Intranet News</h1><p>System maintenance scheduled for Sunday.</p>" },
-                                "careers.php": { type: "file", content: "<h1>Careers</h1><p>Internal job postings only.</p>" },
-                                "web.config": { type: "file", content: "<configuration>\n <system.webServer>\n  <directoryBrowse enabled=\"true\" />\n </system.webServer>\n</configuration>" },
-                                "img": { type: "dir", children: { "logo.png": {type:"file"} } }
+                            type: "dir", perms: "drwxr-xr-x", children: {
+                                "index.php": { type: "file", perms: "-rw-r--r--", size: "180 B", content: "<?php\n  // ArenaWebSec Windows IIS Intranet Gateway\n  $file = $_GET['file'] ?? $_GET['page'] ?? 'home.php';\n  include($file);\n?>" },
+                                "home.php": { type: "file", perms: "-rw-r--r--", size: "1.4 KB", content: "<div class='space-y-6'><div class='bg-gradient-to-r from-blue-950 to-slate-900 text-white p-8 rounded-2xl shadow-lg border border-blue-900/50 relative overflow-hidden'><div class='absolute -right-6 -bottom-6 text-blue-500/10 text-9xl'><i class='fa-brands fa-windows'></i></div><span class='px-3 py-1 bg-cyan-500/20 text-cyan-300 text-xs font-semibold rounded-full border border-cyan-500/30 uppercase tracking-wider mb-3 inline-block'>Windows Enterprise Server 2019</span><h1 class='text-3xl font-extrabold text-white mb-3 tracking-tight'>ArenaWebSec Windows Intranet</h1><p class='text-slate-300 text-base max-w-2xl leading-relaxed'>IIS 10.0 & Active Directory Domain Controller Infrastructure for ArenaWebSec Corporate Datacenter.</p><div class='mt-6 flex flex-wrap gap-3'><a onclick=\"navigateToPage('services.php')\" class='px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold rounded-lg shadow-md transition-all no-underline inline-flex items-center gap-2'>View Enterprise Services <i class='fa-solid fa-arrow-right text-xs'></i></a><a onclick=\"navigateToPage('contact.php')\" class='px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-lg border border-slate-700 transition-all no-underline'>IT Operations Support Desk</a></div></div><div class='grid grid-cols-1 md:grid-cols-3 gap-5 mt-6'><div class='p-5 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow'><div class='w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center mb-3 text-lg'><i class='fa-solid fa-network-wired'></i></div><h3 class='font-bold text-slate-800 text-base'>Active Directory DC</h3><p class='text-xs text-slate-500 mt-2 leading-relaxed'>Single Sign-On (SSO) and Kerberos authentication services across domain controllers.</p></div><div class='p-5 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow'><div class='w-10 h-10 rounded-lg bg-cyan-100 text-cyan-600 flex items-center justify-center mb-3 text-lg'><i class='fa-solid fa-server'></i></div><h3 class='font-bold text-slate-800 text-base'>IIS 10.0 Web Cluster</h3><p class='text-xs text-slate-500 mt-2 leading-relaxed'>High-availability ASP.NET Core & PHP application pool hosting.</p></div><div class='p-5 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow'><div class='w-10 h-10 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center mb-3 text-lg'><i class='fa-solid fa-folder-shared'></i></div><h3 class='font-bold text-slate-800 text-base'>SMB Enterprise Share</h3><p class='text-xs text-slate-500 mt-2 leading-relaxed'>Centralized NTFS file system storage with automated Volume Shadow Copies.</p></div></div></div>" },
+                                "about.php": { type: "file", perms: "-rw-r--r--", size: "920 B", content: "<div class='space-y-6'><div><h1 class='text-2xl font-bold text-slate-900'>About ArenaWebSec Windows Infrastructure</h1><p class='text-slate-600 leading-relaxed mt-2'>Our Windows Server 2019 infrastructure powers core corporate operations, Active Directory identity management, and SQL Server databases.</p></div><div class='border-t border-slate-200 pt-6'><h2 class='text-lg font-bold text-slate-800 mb-4'>Windows Domain Administrators</h2><div class='grid grid-cols-1 sm:grid-cols-3 gap-4'><div class='p-4 bg-slate-50 rounded-xl border border-slate-200 text-center'><div class='w-14 h-14 rounded-full bg-cyan-600 text-white font-bold text-xl flex items-center justify-center mx-auto mb-2 shadow'>AD</div><h4 class='font-bold text-slate-800 text-sm'>Administrator</h4><p class='text-xs text-slate-500'>Domain Admin (ad-dc01)</p></div><div class='p-4 bg-slate-50 rounded-xl border border-slate-200 text-center'><div class='w-14 h-14 rounded-full bg-blue-600 text-white font-bold text-xl flex items-center justify-center mx-auto mb-2 shadow'>B</div><h4 class='font-bold text-slate-800 text-sm'>Bob Martinez</h4><p class='text-xs text-slate-500'>Systems Engineer</p></div><div class='p-4 bg-slate-50 rounded-xl border border-slate-200 text-center'><div class='w-14 h-14 rounded-full bg-indigo-600 text-white font-bold text-xl flex items-center justify-center mx-auto mb-2 shadow'>A</div><h4 class='font-bold text-slate-800 text-sm'>Alice Vance</h4><p class='text-xs text-slate-500'>DevOps Lead</p></div></div></div></div>" },
+                                "services.php": { type: "file", perms: "-rw-r--r--", size: "1.3 KB", content: "<div class='space-y-6'><div><h1 class='text-2xl font-bold text-slate-900'>Windows Enterprise Services</h1><p class='text-slate-600 text-sm mt-1'>Core Windows Server roles running in Datacenter 01.</p></div><div class='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'><div class='p-5 bg-cyan-50/60 border border-cyan-200/80 rounded-xl flex gap-4'><div class='text-cyan-600 text-3xl'><i class='fa-solid fa-users-gear'></i></div><div><h3 class='font-bold text-slate-900 text-base'>Active Directory Domain Services</h3><p class='text-xs text-slate-600 mt-1 leading-relaxed'>Centralized authentication & Group Policy Object (GPO) management for domain workstations.</p></div></div><div class='p-5 bg-blue-50/60 border border-blue-200/80 rounded-xl flex gap-4'><div class='text-blue-600 text-3xl'><i class='fa-solid fa-database'></i></div><div><h3 class='font-bold text-slate-900 text-base'>Microsoft SQL Server 2019</h3><p class='text-xs text-slate-600 mt-1 leading-relaxed'>High-performance relational database cluster storing customer security metrics.</p></div></div><div class='p-5 bg-indigo-50/60 border border-indigo-200/80 rounded-xl flex gap-4'><div class='text-indigo-600 text-3xl'><i class='fa-solid fa-envelope-open-text'></i></div><div><h3 class='font-bold text-slate-900 text-base'>Microsoft Exchange 2019</h3><p class='text-xs text-slate-600 mt-1 leading-relaxed'>Enterprise email routing, Outlook Web Access (OWA), and calendar scheduling.</p></div></div><div class='p-5 bg-slate-100 border border-slate-200 rounded-xl flex gap-4'><div class='text-slate-700 text-3xl'><i class='fa-solid fa-shield-virus'></i></div><div><h3 class='font-bold text-slate-900 text-base'>Windows Defender ATP</h3><p class='text-xs text-slate-600 mt-1 leading-relaxed'>Endpoint detection and response (EDR) safeguarding domain server nodes.</p></div></div></div></div>" },
+                                "news.php": { type: "file", perms: "-rw-r--r--", size: "840 B", content: "<div class='space-y-4'><div><h1 class='text-2xl font-bold text-slate-900'>Windows Infrastructure News & Maintenance</h1></div><div class='space-y-3 mt-4'><article class='p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-cyan-400 transition-colors'><div class='flex justify-between items-start'><h3 class='font-bold text-cyan-600 text-base'>Scheduled Maintenance: Domain Controller Patching</h3><span class='text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-cyan-100 text-cyan-800'>Notice</span></div><span class='text-xs text-slate-400 block mt-1'>August 2026</span><p class='mt-2 text-xs text-slate-600 leading-relaxed'>Windows Server Cumulative Update KB5012345 will be deployed on Sunday at 02:00 UTC.</p></article></div></div>" },
+                                "contact.php": { type: "file", perms: "-rw-r--r--", size: "650 B", content: "<div class='space-y-4'><div><h1 class='text-2xl font-bold text-slate-900'>IT Operations Support Desk</h1></div><div class='p-4 bg-slate-900 text-white rounded-xl shadow-md border border-slate-800 space-y-2 font-mono text-xs'><p><span class='text-cyan-400 font-bold'>Windows Domain Admin:</span> admin@arenawebsec.local</p><p><span class='text-emerald-400 font-bold'>Active Directory DC:</span> ad-dc01.arenawebsec.local (10.0.0.8)</p><p><span class='text-amber-400 font-bold'>Internal SMB Share:</span> \\\\arenawebsec.local\\dfs</p></div></div>" },
+                                "careers.php": { type: "file", perms: "-rw-r--r--", size: "690 B", content: "<div class='space-y-4'><div><h1 class='text-2xl font-bold text-slate-900'>Internal Windows IT Job Postings</h1></div><div class='space-y-2 mt-4'><div class='p-4 bg-white border border-slate-200 rounded-xl flex justify-between items-center'><h4 class='font-bold text-slate-800 text-sm'>Windows Server & Active Directory Administrator</h4><span class='px-3 py-1 bg-cyan-100 text-cyan-800 text-xs font-semibold rounded-full'>Open</span></div></div></div>" },
+                                "gallery.php": { type: "file", perms: "-rw-r--r--", size: "530 B", content: "<div class='space-y-4'><div><h1 class='text-2xl font-bold text-slate-900'>Windows Datacenter Racks</h1></div><div class='grid grid-cols-2 gap-4 mt-4'><div class='bg-slate-800 h-32 rounded-xl flex flex-col items-center justify-center text-slate-300 shadow font-mono text-xs'><i class='fa-brands fa-windows text-cyan-400 text-3xl mb-1'></i>Server 2019 DC 01</div><div class='bg-slate-800 h-32 rounded-xl flex flex-col items-center justify-center text-slate-300 shadow font-mono text-xs'><i class='fa-solid fa-database text-blue-400 text-3xl mb-1'></i>SQL Server 2019 Cluster</div></div></div>" },
+                                "config.php": { type: "file", perms: "-rw-r--r--", size: "260 B", content: "<?php\n  // ArenaWebSec IIS Windows Internal Database Credentials\n  $db_host = '10.0.0.5';\n  $db_user = 'sa';\n  $db_pass = 'SuperSecretSaPass#99';\n  $db_name = 'arenawebsec_win_db';\n?>" },
+                                "robots.txt": { type: "file", perms: "-rw-r--r--", size: "85 B", content: "User-agent: *\nDisallow: /admin\nDisallow: /web.config\nDisallow: /config.php" },
+                                "web.config": { type: "file", perms: "-rw-r--r--", size: "320 B", content: "<configuration>\n <system.webServer>\n  <directoryBrowse enabled=\"true\" />\n  <defaultDocument>\n   <files>\n    <add value=\"index.php\" />\n   </files>\n  </defaultDocument>\n </system.webServer>\n</configuration>" },
+                                "admin": { type: "dir", perms: "drwxr-xr-x", children: { "index.php": {type:"file", perms: "-rw-r--r--", size: "480 B", content: "<h1>IIS Enterprise Admin Gateway</h1><form><input type='text' placeholder='Domain\\Username'><input type='password' placeholder='Password'></form>"}, "logs.php": {type:"file", perms: "-rw-r--r--", size: "1.2 KB", content: "IIS 10.0 Security Log Audit Streams"} } }
                             }
                         },
-                        "apache": { type: "dir", children: { "logs": { type: "dir", children: { "access.log": {type:"file", content: "127.0.0.1 - - \"GET /index.php\" 200"}, "error.log": {type:"file"} } }, "conf": { type: "dir", children: { "httpd.conf": {type:"file", content: "Listen 80\nServerName localhost"} } } } },
-                        "php": { type: "dir", children: { "php.ini": {type:"file", content: "display_errors = On\nallow_url_include = On"} } },
-                        "mysql": { type: "dir", children: { "bin": {type:"dir", children: {"my.ini": {type:"file", content: "[mysqld]\nport=3306"}}}, "data": { type: "dir", children: { "mysql": {type:"dir"} } } } }
+                        "apache": { type: "dir", perms: "drwxr-xr-x", children: { "logs": { type: "dir", perms: "drwxr-xr-x", children: { "access.log": {type:"file", perms: "-rw-r--r--", size: "3.2 KB", content: "127.0.0.1 - - [10/Aug/2026:14:00:01] \"GET /index.php?file=home.php HTTP/1.1\" 200\n127.0.0.1 - - [10/Aug/2026:14:05:00] \"GET /index.php?file=..\\..\\..\\..\\Windows\\win.ini HTTP/1.1\" 200"}, "error.log": {type:"file", perms: "-rw-r--r--", size: "1.1 KB"} } }, "conf": { type: "dir", perms: "drwxr-xr-x", children: { "httpd.conf": {type:"file", perms: "-rw-r--r--", size: "4.2 KB", content: "Listen 80\nServerName localhost:80"} } } } },
+                        "php": { type: "dir", perms: "drwxr-xr-x", children: { "php.ini": {type:"file", perms: "-rw-r--r--", size: "12.4 KB", content: "display_errors = On\nallow_url_include = On\nallow_url_fopen = On\nshort_open_tag = On"} } },
+                        "mysql": { type: "dir", perms: "drwxr-xr-x", children: { "bin": {type:"dir", perms: "drwxr-xr-x", children: {"my.ini": {type:"file", perms: "-rw-r--r--", size: "920 B", content: "[mysqld]\nport=3306\nbind-address=127.0.0.1"}}} } }
                     }
                 },
                 "Users": {
-                    type: "dir", children: {
-                        "Administrator": { type: "dir", children: { "Desktop": { type: "dir", children: { "passwords.txt": {type:"file", content: "admin: SuperSecretPass123!"}, "backup.zip": {type:"file"} } }, "Documents": { type: "dir", children: { "Quarterly_Report.docx": {type:"file"} } }, "Downloads": { type: "dir", children: { "putty.exe": {type:"file"}, "winscp.exe": {type:"file"} } } } },
-                        "Public": { type: "dir", children: { "Desktop": { type: "dir", children: {} }, "Documents": {type:"dir"} } },
-                        "Guest": { type: "dir", children: { "Desktop": { type: "dir", children: {} } } },
-                        "Bob": { type: "dir", children: { "Desktop": {type:"dir", children: {"todo.txt": {type:"file", content: "Update windows"}} }, "Documents": {type:"dir", children: {"ProjectX": {type:"dir"}}}, "Pictures": {type:"dir"} } },
-                        "Alice": { type: "dir", children: { "Desktop": {type:"dir"}, "Downloads": {type:"dir", children: {"installer.msi": {type:"file"}}} } }
+                    type: "dir", perms: "drwxr-xr-x", children: {
+                        "Administrator": { type: "dir", perms: "drwx------", children: { "Desktop": { type: "dir", perms: "drwx------", children: { "passwords.txt": {type:"file", perms: "-rw-------", size: "240 B", content: "ArenaWebSec Admin Credentials:\n---------------------------\nDomain Admin: AdminP@ssw0rd2026!\nSQL Sa: SuperSecretSaPass#99\nVPN Key Token: 994821-X3A"}, "root.txt": {type:"file", perms: "-rw-------", size: "40 B", cw: true, content: "cw{root_privilege_escalation_master}"}, "Quarterly_Audit.docx": {type:"file", size: "2.4 MB"} } }, "Documents": { type: "dir", perms: "drwx------", children: { "Network_Topology.vsdx": {type:"file", size: "1.8 MB"} } } } },
+                        "Bob": { type: "dir", perms: "drwxr-xr-x", children: { "Desktop": {type:"dir", perms: "drwxr-xr-x", children: {"todo.txt": {type:"file", perms: "-rw-r--r--", size: "90 B", content: "Upgrade Windows Defender definitions"}, "user.txt": {type:"file", perms: "-rw-r--r--", size: "26 B", cw: true, content: "cw{user_access_level_1}"}} }, "Documents": {type:"dir", perms: "drwxr-xr-x", children: {"ProjectX": {type:"dir", perms: "drwxr-xr-x"}}} } },
+                        "Alice": { type: "dir", perms: "drwxr-xr-x", children: { "Desktop": {type:"dir", perms: "drwxr-xr-x", children: {"notes.txt": {type:"file", perms: "-rw-r--r--", size: "120 B"}}}, "Downloads": {type:"dir", perms: "drwxr-xr-x", children: {"vpn_installer.msi": {type:"file", size: "18 MB"}}} } }
                     }
                 },
-                "inetpub": { type: "dir", children: { "wwwroot": { type: "dir", children: { "iisstart.htm": {type:"file", content: "<html><body><h1>IIS Windows Server</h1></body></html>"}, "web.config": {type:"file"} } }, "logs": { type: "dir", children: { "LogFiles": {type:"dir"} } } } }
+                "inetpub": { type: "dir", perms: "drwxr-xr-x", children: { "wwwroot": { type: "dir", perms: "drwxr-xr-x", children: { "iisstart.htm": {type:"file", perms: "-rw-r--r--", size: "680 B", content: "<html><body><h1>IIS 10.0 Windows Server</h1></body></html>"}, "web.config": {type:"file", perms: "-rw-r--r--", size: "320 B"} } }, "logs": { type: "dir", perms: "drwxr-xr-x", children: { "LogFiles": {type:"dir", perms: "drwxr-xr-x"} } } } }
             }
         };
 
-        // --- 2. State ---
+        // --- 2. Application State Variables ---
         let activeOS = 'linux';
         let currentPath = []; 
         let currentFS = linuxFS;
@@ -304,8 +608,11 @@
         let webRootLinux = ["var", "www", "html"];
         let webRootWindows = ["xampp", "htdocs"];
         let currentWebRoot = webRootLinux;
+        let treeSearchQuery = "";
+        let cwCaptured = new Set();
+        const totalCW = 2;
 
-        // Elements
+        // UI DOM Elements
         const treeContainer = document.getElementById('file-tree');
         const browserContent = document.getElementById('browser-content');
         const browserUrlInput = document.getElementById('browser-url');
@@ -314,22 +621,68 @@
         const promptUser = document.getElementById('prompt-user');
         const promptPath = document.getElementById('prompt-path');
 
-        // --- 3. LFI Logic ---
+        // --- 3. Toast Notification Helper ---
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = "bg-cyber-900 border-cyan-500/50 text-cyan-300";
+            let icon = "fa-circle-info";
+            
+            if (type === 'success') {
+                bgClass = "bg-emerald-950 border-emerald-500/50 text-emerald-300";
+                icon = "fa-circle-check";
+            } else if (type === 'cw') {
+                bgClass = "bg-amber-950 border-amber-500/80 text-amber-300 glow-amber";
+                icon = "fa-graduation-cap";
+            } else if (type === 'warning') {
+                bgClass = "bg-rose-950 border-rose-500/50 text-rose-300";
+                icon = "fa-triangle-exclamation";
+            }
+
+            toast.className = `px-4 py-3 rounded-lg border shadow-xl text-xs font-mono flex items-center gap-2.5 transition-all duration-300 opacity-0 translate-y-2 pointer-events-auto ${bgClass}`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-sm"></i> <span>${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            // Animate in
+            setTimeout(() => {
+                toast.classList.remove('opacity-0', 'translate-y-2');
+            }, 10);
+
+            // Auto Remove
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 3500);
+            }, 3500);
+        }
+
+        // --- 4. LFI Core Logic (Enhanced Base64 & Class Work Detection) ---
 
         function simulateLFI() {
             const urlStr = browserUrlInput.value;
             let paramValue = "";
             let isHome = false;
+            let isBase64Filter = false;
+            let base64Resource = "";
             
-            try {
-                const urlObj = new URL(urlStr);
-                const params = new URLSearchParams(urlObj.search);
-                if (params.has('page')) paramValue = params.get('page');
-                else if (params.has('file')) paramValue = params.get('file');
-                else isHome = true;
-            } catch (e) {
-                if (urlStr.includes('=')) paramValue = urlStr.split('=')[1];
-                else isHome = true;
+            // Detect Base64 Filter Wrapper: php://filter/convert.base64-encode/resource=filename
+            if (urlStr.includes('php://filter') && urlStr.includes('base64-encode')) {
+                isBase64Filter = true;
+                const match = urlStr.match(/resource=([^&]+)/);
+                if (match) base64Resource = match[1];
+                paramValue = base64Resource;
+            } else {
+                try {
+                    const urlObj = new URL(urlStr);
+                    const params = new URLSearchParams(urlObj.search);
+                    if (params.has('page')) paramValue = params.get('page');
+                    else if (params.has('file')) paramValue = params.get('file');
+                    else isHome = true;
+                } catch (e) {
+                    if (urlStr.includes('=')) paramValue = urlStr.split('=')[1];
+                    else isHome = true;
+                }
             }
 
             if (isHome) paramValue = "home.php";
@@ -346,16 +699,15 @@
                 else searchPath.push(part);
             }
 
-            // Traverse with Fix
+            // Traverse Tree
             let ptr = currentFS;
             let found = true;
             for (let folder of searchPath) {
                 let targetKey = folder;
                 
-                // FIX: Windows Case Insensitivity Check
+                // Windows Case Insensitivity
                 if (activeOS === 'windows' && ptr.children) {
                     const keys = Object.keys(ptr.children);
-                    // Try to find a key that matches case-insensitively
                     const match = keys.find(k => k.toLowerCase() === folder.toLowerCase());
                     if (match) targetKey = match;
                 }
@@ -368,25 +720,109 @@
                 }
             }
 
-            // Render
+            // Render Results
             let mainContent = "";
             if (found && ptr.type === 'file') {
-                const content = ptr.content || "[Empty]";
+                const content = ptr.content || "[Empty File Content]";
                 
-                if (content.includes('VULNERABLE CODE') || (content.includes('include($page)') && content.includes('$_GET'))) {
-                    mainContent = `<div class="p-4 border-l-4 border-red-500 bg-red-50"><h2 class="text-red-700 font-bold">Infinite Loop Warning</h2><p>You cannot include the index file within itself.</p></div>`;
+                // Class Work Task Detection
+                if (ptr.cw || content.includes('cw{')) {
+                    const cwMatch = content.match(/cw\{[^}]+\}/);
+                    if (cwMatch && !cwCaptured.has(cwMatch[0])) {
+                        cwCaptured.add(cwMatch[0]);
+                        document.getElementById('cw-count').innerText = `${cwCaptured.size}/${totalCW}`;
+                        showToast(`🎓 Class Work Task Completed: ${cwMatch[0]}`, 'cw');
+                    }
+                }
+
+                // Base64 Wrapper Mode
+                if (isBase64Filter) {
+                    const b64String = btoa(content);
+                    mainContent = `
+                        <div class="p-6 bg-slate-900 rounded-xl text-white font-mono space-y-4 border border-blue-500/40 shadow-xl">
+                            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                                <span class="text-xs text-blue-400 font-bold uppercase tracking-wider flex items-center gap-2">
+                                    <i class="fa-solid fa-code"></i> PHP Base64 Stream Output
+                                </span>
+                                <span class="text-[11px] text-slate-400">Resource: ${escapeHtml(base64Resource)}</span>
+                            </div>
+                            <div class="p-4 bg-cyber-950 rounded-lg text-emerald-400 text-xs break-all border border-cyber-700 select-all font-mono">
+                                ${b64String}
+                            </div>
+                            <div class="flex justify-between items-center text-xs pt-2">
+                                <span class="text-slate-400">Base64 Encoded (${b64String.length} chars)</span>
+                                <button onclick="toggleDecodeBase64('${escapeHtml(btoa(escapeHtml(content)))}')" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded font-sans font-semibold transition-colors">
+                                    Decode Base64 Source
+                                </button>
+                            </div>
+                            <div id="b64-decoded-view" class="hidden mt-3 p-4 bg-cyber-900 border border-emerald-500/40 rounded-lg text-slate-200 text-xs whitespace-pre-wrap font-mono"></div>
+                        </div>
+                    `;
+                }
+                // Infinite Loop Warning
+                else if (content.includes('VULNERABLE CODE') || (content.includes('include($page)') && content.includes('$_GET'))) {
+                    mainContent = `
+                        <div class="p-6 border-l-4 border-rose-500 bg-rose-50 rounded-r-xl shadow-md space-y-2">
+                            <h2 class="text-rose-800 font-bold text-lg flex items-center gap-2">
+                                <i class="fa-solid fa-triangle-exclamation"></i> Infinite Recursion Loop Warning
+                            </h2>
+                            <p class="text-rose-700 text-sm">Cannot include index.php within itself recursively. The server aborted the request to prevent memory exhaustion.</p>
+                        </div>
+                    `;
                 } 
-                else if (content.trim().startsWith('<') || content.includes('<h1>') || content.includes('<body>')) {
+                // Render Normal PHP Web Content
+                else if (content.trim().startsWith('<') || content.includes('<h1>') || content.includes('<body>') || content.includes('space-y')) {
                     mainContent = content;
                 }
+                // Render Dumped File (Line-numbered Code Viewer)
                 else {
-                    mainContent = `<div class='dump'>${escapeHtml(content)}</div>`;
+                    const lines = content.split('\n');
+                    const lineHtml = lines.map((line, idx) => `
+                        <div class="code-line">
+                            <div class="line-number">${idx + 1}</div>
+                            <div class="line-text">${escapeHtml(line)}</div>
+                        </div>
+                    `).join('');
+
+                    let riskBadge = `<span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] uppercase font-bold">CRITICAL EXPOSURE</span>`;
+                    if (paramValue.includes('win.ini') || paramValue.includes('hosts')) {
+                        riskBadge = `<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] uppercase font-bold">HIGH EXPOSURE</span>`;
+                    }
+
+                    mainContent = `
+                        <div class="code-dump-container">
+                            <div class="px-4 py-2.5 bg-cyber-900 border-b border-cyber-700 flex items-center justify-between font-mono text-xs">
+                                <div class="flex items-center gap-3">
+                                    <i class="fa-solid fa-file-code text-emerald-400"></i>
+                                    <span class="text-slate-200 font-bold">${escapeHtml(paramValue)}</span>
+                                    ${riskBadge}
+                                </div>
+                                <div class="flex items-center gap-3 text-slate-400 text-[11px]">
+                                    <span>${lines.length} Lines</span>
+                                    <button onclick="copyToClipboard('${escapeHtml(content.replace(/'/g, "\\'"))}')" class="px-2 py-1 bg-cyber-800 hover:bg-cyber-700 text-slate-200 rounded border border-cyber-700 transition-colors flex items-center gap-1">
+                                        <i class="fa-solid fa-copy"></i> Copy Content
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-2 overflow-x-auto max-h-[500px]">${lineHtml}</div>
+                        </div>
+                    `;
                 }
             } else {
+                // PHP Inclusion Warning Block
                 const pathStr = activeOS === 'linux' ? '/var/www/html/index.php' : 'C:\\xampp\\htdocs\\index.php';
-                mainContent = `<div class='p-4 bg-orange-100 text-orange-800 font-mono text-xs border border-orange-300'><b>Warning</b>: include(${escapeHtml(paramValue)}): failed to open stream: No such file or directory in <b>${pathStr}</b> on line <b>3</b><br><b>Warning</b>: include(): Failed opening '${escapeHtml(paramValue)}' for inclusion (include_path='.:/usr/share/php') in <b>${pathStr}</b> on line <b>3</b></div>`;
+                mainContent = `
+                    <div class="p-4 bg-amber-50 text-amber-900 font-mono text-xs border-l-4 border-amber-500 rounded-r-lg shadow-sm space-y-1">
+                        <div class="font-bold flex items-center gap-1.5 text-amber-800">
+                            <i class="fa-solid fa-triangle-exclamation"></i> PHP Warning: include(${escapeHtml(paramValue)})
+                        </div>
+                        <div>failed to open stream: No such file or directory in <b>${pathStr}</b> on line <b>4</b></div>
+                        <div class="text-amber-700/80"><b>Warning</b>: include(): Failed opening '${escapeHtml(paramValue)}' for inclusion (include_path='.:/usr/share/php') in <b>${pathStr}</b> on line <b>4</b></div>
+                    </div>
+                `;
             }
 
+            // Target Web App Navigation Header
             const navLinks = [
                 {name: "Home", page: "home.php"},
                 {name: "News", page: "news.php"},
@@ -398,110 +834,220 @@
             ];
             
             let navHtml = navLinks.map(link => 
-                `<a onclick="navigateToPage('${link.page}')" class="${paramValue === link.page ? 'text-blue-600 font-bold border-b-2 border-blue-600' : 'text-slate-600 hover:text-blue-500'} mr-4 transition-all pb-1 no-underline border-b-transparent hover:border-blue-300">${link.name}</a>`
+                `<a onclick="navigateToPage('${link.page}')" class="${paramValue === link.page ? (activeOS === 'windows' ? 'text-cyan-600 font-bold border-b-2 border-cyan-600' : 'text-blue-600 font-bold border-b-2 border-blue-600') : 'text-slate-600 hover:text-blue-600'} mr-4 transition-all pb-1 no-underline border-b-transparent">${link.name}</a>`
             ).join('');
 
+            // OS Specific Website Header
+            const brandIcon = activeOS === 'windows' ? 'fa-brands fa-windows text-cyan-600' : 'fa-solid fa-shield-halved text-blue-600';
+            const brandColor = activeOS === 'windows' ? 'bg-cyan-600' : 'bg-blue-600';
+
             browserContent.innerHTML = `
-                <div class="sim-site min-h-full flex flex-col bg-white">
-                    <nav class="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
-                        <div class="flex items-center gap-2 font-bold text-xl text-slate-800 cursor-pointer" onclick="navigateToPage('home.php')">
-                            <i class="fa-solid fa-shield-halved text-blue-600"></i> SecureCorp
+                <div class="sim-site min-h-full flex flex-col bg-slate-50">
+                    <nav class="bg-white border-b border-slate-200 px-8 py-3.5 flex items-center justify-between shadow-sm sticky top-0 z-10">
+                        <div class="flex items-center gap-2.5 font-extrabold text-xl text-slate-900 cursor-pointer tracking-tight" onclick="navigateToPage('home.php')">
+                            <div class="w-8 h-8 rounded-lg ${brandColor} text-white flex items-center justify-center text-sm shadow">
+                                <i class="${brandIcon}"></i>
+                            </div>
+                            ArenaWebSec ${activeOS === 'windows' ? '<span class="text-xs font-semibold px-2 py-0.5 rounded bg-cyan-100 text-cyan-800 border border-cyan-200">Windows IIS Portal</span>' : ''}
                         </div>
                         <div class="text-sm font-medium flex flex-wrap gap-y-2">${navHtml}</div>
                     </nav>
-                    <main class="flex-1 p-8 max-w-4xl mx-auto w-full">${mainContent}</main>
-                    <footer class="bg-slate-50 border-t border-slate-200 p-6 text-center text-slate-400 text-xs">
-                        &copy; 2023 SecureCorp Inc. All rights reserved. <br>
-                        Powered by ${activeOS === 'linux' ? 'PHP/7.4.3 on Ubuntu' : 'PHP/8.0 on Windows Server'}
+                    <main class="flex-1 p-8 max-w-5xl mx-auto w-full">${mainContent}</main>
+                    <footer class="bg-white border-t border-slate-200 p-6 text-center text-slate-400 text-xs font-mono">
+                        &copy; 2026 ArenaWebSec Global Inc. All rights reserved. <br>
+                        Server Stack: ${activeOS === 'linux' ? 'PHP/7.4.3 (Ubuntu 22.04 LTS) Apache/2.4.41' : 'PHP/8.0 (Windows Server 2019 Datacenter) IIS/10.0'}
                     </footer>
                 </div>
             `;
         }
 
+        // Helper Functions for Browser
         function navigateToPage(page) {
-            const baseUrl = activeOS === 'linux' ? 'http://lfi.lab/index.php' : 'http://win-server.local/index.php';
-            browserUrlInput.value = `${baseUrl}?page=${page}`;
+            const baseUrl = activeOS === 'linux' ? 'http://arenawebsec.lab/index.php' : 'http://win-server.local/index.php';
+            const paramKey = activeOS === 'linux' ? 'page' : 'file';
+            browserUrlInput.value = `${baseUrl}?${paramKey}=${page}`;
             reloadBrowser();
         }
 
+        function injectPayload(payloadStr) {
+            const baseUrl = activeOS === 'linux' ? 'http://arenawebsec.lab/index.php' : 'http://win-server.local/index.php';
+            const paramKey = activeOS === 'linux' ? 'page' : 'file';
+            browserUrlInput.value = `${baseUrl}?${paramKey}=${payloadStr}`;
+            reloadBrowser();
+            showToast(`Injected payload: ${payloadStr}`, 'info');
+        }
+
+        function toggleQuickVectors() {
+            const bar = document.getElementById('quick-vectors-bar');
+            if (bar) {
+                bar.classList.toggle('hidden');
+            }
+        }
+
         function reloadBrowser() {
-            browserContent.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-slate-400 bg-white"><i class="fa-solid fa-circle-notch fa-spin text-3xl mb-3 text-blue-500"></i><span class="font-mono text-xs">Connecting...</span></div>`;
-            setTimeout(simulateLFI, 300);
+            browserContent.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-slate-400 bg-white">
+                    <i class="fa-solid fa-circle-notch fa-spin text-4xl mb-3 ${activeOS === 'windows' ? 'text-cyan-500' : 'text-emerald-500'}"></i>
+                    <span class="font-mono text-xs">Requesting resource via include()...</span>
+                </div>
+            `;
+            setTimeout(simulateLFI, 250);
+        }
+
+        function toggleDecodeBase64(b64Content) {
+            const container = document.getElementById('b64-decoded-view');
+            if (container) {
+                if (container.classList.contains('hidden')) {
+                    container.innerText = atob(b64Content);
+                    container.classList.remove('hidden');
+                } else {
+                    container.classList.add('hidden');
+                }
+            }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+            showToast("Copied to clipboard!", "success");
+        }
+
+        function copyBrowserUrl() {
+            navigator.clipboard.writeText(browserUrlInput.value);
+            showToast("URL copied to clipboard!", "success");
         }
 
         function escapeHtml(text) {
+            if (!text) return "";
             return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
 
         browserUrlInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') reloadBrowser(); });
 
+        // --- 5. OS Switcher & Initialization ---
+
         function init() {
-            activeOS = 'linux'; currentFS = linuxFS; currentWebRoot = webRootLinux; expandedDirs.add('root');
-            updatePrompt(); reloadBrowser(); cmdInput.focus();
+            activeOS = 'linux'; 
+            currentFS = linuxFS; 
+            currentWebRoot = webRootLinux; 
+            expandedDirs.add('root');
+            updatePrompt(); 
+            reloadBrowser(); 
+            cmdInput.focus();
         }
 
-        function hardReset() { location.reload(); }
+        function hardReset() { 
+            cwCaptured.clear();
+            document.getElementById('cw-count').innerText = `0/${totalCW}`;
+            init();
+            showToast("Environment Reset to Default State", "warning");
+        }
 
         function switchOS(os) {
-            activeOS = os; currentPath = []; expandedDirs.clear();
+            activeOS = os; 
+            currentPath = []; 
+            expandedDirs.clear();
             const btnLinux = document.getElementById('btn-linux');
             const btnWindows = document.getElementById('btn-windows');
+            const statusText = document.getElementById('os-status-text');
+            const rootLabel = document.getElementById('os-root-label');
 
             if (os === 'linux') {
-                currentFS = linuxFS; currentWebRoot = webRootLinux; expandedDirs.add('root');
+                currentFS = linuxFS; 
+                currentWebRoot = webRootLinux; 
+                expandedDirs.add('root');
                 promptUser.innerText = 'root@box:';
-                browserUrlInput.value = "http://lfi.lab/index.php?page=home.php";
-                document.getElementById('server-signature').innerText = "Apache/2.4.41 (Ubuntu)";
-                btnLinux.classList.replace('text-slate-400', 'text-white'); btnLinux.classList.replace('bg-transparent', 'bg-emerald-600');
-                btnWindows.classList.replace('text-white', 'text-slate-400'); btnWindows.classList.replace('bg-blue-600', 'bg-transparent');
+                browserUrlInput.value = "http://arenawebsec.lab/index.php?page=home.php";
+                document.getElementById('server-signature').innerText = "Apache/2.4.41 (Ubuntu 22.04 LTS)";
+                statusText.innerText = "Ubuntu 22.04 LTS (EXT4)";
+                rootLabel.innerText = "/";
+
+                btnLinux.className = "px-3 py-1 text-xs font-semibold bg-emerald-600 text-white rounded-md transition-all flex items-center gap-1.5 shadow";
+                btnWindows.className = "px-3 py-1 text-xs font-semibold text-slate-400 hover:text-white rounded-md transition-all flex items-center gap-1.5";
             } else {
-                currentFS = windowsFS; currentWebRoot = webRootWindows; expandedDirs.add('C:');
+                currentFS = windowsFS; 
+                currentWebRoot = webRootWindows; 
+                expandedDirs.add('C:');
                 promptUser.innerText = 'C:\\>';
-                browserUrlInput.value = "http://win-server.local/index.php?page=home.php";
+                browserUrlInput.value = "http://win-server.local/index.php?file=home.php";
                 document.getElementById('server-signature').innerText = "IIS/10.0 (Windows Server 2019)";
-                btnWindows.classList.replace('text-slate-400', 'text-white'); btnWindows.classList.replace('bg-transparent', 'bg-blue-600');
-                btnLinux.classList.replace('text-white', 'text-slate-400'); btnLinux.classList.replace('bg-emerald-600', 'bg-transparent');
+                statusText.innerText = "Windows Server 2019 (NTFS)";
+                rootLabel.innerText = "C:\\";
+
+                btnWindows.className = "px-3 py-1 text-xs font-semibold bg-cyan-600 text-white rounded-md transition-all flex items-center gap-1.5 shadow";
+                btnLinux.className = "px-3 py-1 text-xs font-semibold text-slate-400 hover:text-white rounded-md transition-all flex items-center gap-1.5";
             }
-            reloadBrowser(); updatePrompt();
+            reloadBrowser(); 
+            updatePrompt();
+            showToast(`Switched OS to ${os.toUpperCase()}`, 'info');
         }
 
-        function collapseAll() { expandedDirs.clear(); if (activeOS === 'linux') expandedDirs.add('root'); else expandedDirs.add('C:'); renderTree(); }
+        // --- 6. File System Tree Explorer ---
+
+        function collapseAll() { 
+            expandedDirs.clear(); 
+            if (activeOS === 'linux') expandedDirs.add('root'); else expandedDirs.add('C:'); 
+            renderTree(); 
+        }
+
+        function handleTreeSearch(query) {
+            treeSearchQuery = query.toLowerCase().trim();
+            renderTree();
+        }
 
         function renderTree() {
             treeContainer.innerHTML = buildTreeHTML(currentFS, [], activeOS === 'linux' ? '/' : 'C:\\', activeOS === 'linux' ? 'root' : 'C:');
         }
 
         function buildTreeHTML(node, pathArr, label, uniqueKey) {
+            // Search Filtering Logic
+            if (treeSearchQuery && node.type === 'file' && !label.toLowerCase().includes(treeSearchQuery)) {
+                return '';
+            }
+
             const isCurrentDir = JSON.stringify(pathArr) === JSON.stringify(currentPath);
-            const isExpanded = expandedDirs.has(uniqueKey);
+            const isExpanded = expandedDirs.has(uniqueKey) || treeSearchQuery.length > 0;
             const hasChildren = node.type === 'dir' && node.children && Object.keys(node.children).length > 0;
             const depth = pathArr.length;
-            const paddingLeft = depth * 12 + 4;
+            const paddingLeft = depth * 14 + 4;
             
-            let icon = 'fa-folder'; let iconColor = 'text-blue-400';
+            // Icon Determination
+            let icon = 'fa-folder'; 
+            let iconColor = 'text-amber-400';
+            
             if (node.type === 'file') {
-                icon = 'fa-file-code'; iconColor = 'text-slate-500';
-                if(label.endsWith('.php')) iconColor = 'text-purple-400';
-                if(label.endsWith('.txt')) iconColor = 'text-gray-400';
-                if(label.endsWith('.ini')) iconColor = 'text-yellow-400';
-                if(label.endsWith('.log')) iconColor = 'text-amber-600';
-            } else { if (isCurrentDir) iconColor = 'text-emerald-400'; }
+                icon = 'fa-file-code'; 
+                iconColor = 'text-slate-400';
+                if (label.endsWith('.php')) iconColor = 'text-purple-400';
+                if (label.endsWith('.txt')) iconColor = 'text-emerald-400';
+                if (label.endsWith('.ini') || label.endsWith('.conf') || label.endsWith('.config')) iconColor = 'text-amber-300';
+                if (label.endsWith('.log')) iconColor = 'text-rose-400';
+                if (label.endsWith('.sql')) iconColor = 'text-cyan-400';
+                if (label.includes('id_rsa') || label.includes('shadow') || label.includes('SAM')) iconColor = 'text-yellow-400';
+                if (node.cw) iconColor = 'text-amber-400 font-bold animate-bounce';
+            } else { 
+                if (isCurrentDir) iconColor = 'text-emerald-400'; 
+            }
 
             let toggleHtml = hasChildren && node.type === 'dir'
-                ? `<i onclick="toggleExpand('${uniqueKey}', event)" class="fa-solid ${isExpanded ? 'fa-caret-down' : 'fa-caret-right'} w-4 text-center text-slate-500 hover:text-white transition-colors mr-1"></i>`
+                ? `<i onclick="toggleExpand('${uniqueKey}', event)" class="fa-solid ${isExpanded ? 'fa-caret-down' : 'fa-caret-right'} w-4 text-center text-slate-500 hover:text-white transition-colors mr-1 cursor-pointer"></i>`
                 : `<span class="w-4 mr-1 inline-block"></span>`;
 
             const separator = activeOS === 'linux' ? '/' : '\\\\'; 
             const pathStr = pathArr.join(separator); 
+
+            let cwBadge = node.cw ? `<i class="fa-solid fa-graduation-cap text-amber-400 ml-1.5 text-[10px]" title="Class Work File"></i>` : '';
+            let permTag = node.perms ? `<span class="text-[10px] text-slate-500 font-mono ml-auto mr-2">${node.perms}</span>` : '';
             
             let html = `
-                <div class="tree-item flex items-center py-0.5 cursor-pointer rounded-sm">
-                    <div style="padding-left: ${paddingLeft}px" class="flex items-center w-full">
+                <div class="tree-item flex items-center py-1 cursor-pointer rounded transition-colors ${isCurrentDir ? 'active' : ''}">
+                    <div style="padding-left: ${paddingLeft}px" class="flex items-center w-full min-w-0 pr-2">
                         ${toggleHtml}
-                        <div class="flex items-center flex-1" onclick="handleNameClick('${uniqueKey}', '${pathStr}', '${node.type}')">
-                            <i class="fa-solid ${icon} ${iconColor} mr-2 text-[10px]"></i>
-                            <span class="${isCurrentDir ? 'text-white font-bold' : ''}">${label}</span>
+                        <div class="flex items-center flex-1 min-w-0" onclick="handleNameClick('${uniqueKey}', '${pathStr}', '${node.type}')">
+                            <i class="fa-solid ${icon} ${iconColor} mr-2 text-[11px] shrink-0"></i>
+                            <span class="truncate ${isCurrentDir ? 'text-white font-bold' : 'text-slate-300'}">${label}</span>
+                            ${cwBadge}
                         </div>
+                        ${permTag}
                     </div>
                 </div>
             `;
@@ -513,12 +1059,19 @@
                     if (typeA !== typeB) return typeA - typeB;
                     return a.localeCompare(b);
                 });
-                keys.forEach(key => { html += buildTreeHTML(node.children[key], [...pathArr, key], key, uniqueKey + '|' + key); });
+                keys.forEach(key => { 
+                    html += buildTreeHTML(node.children[key], [...pathArr, key], key, uniqueKey + '|' + key); 
+                });
             }
             return html;
         }
 
-        window.toggleExpand = function(key, event) { event.stopPropagation(); if (expandedDirs.has(key)) expandedDirs.delete(key); else expandedDirs.add(key); renderTree(); }
+        window.toggleExpand = function(key, event) { 
+            event.stopPropagation(); 
+            if (expandedDirs.has(key)) expandedDirs.delete(key); 
+            else expandedDirs.add(key); 
+            renderTree(); 
+        }
 
         window.handleNameClick = function(key, pathStr, type) {
             if (type === 'dir') {
@@ -526,7 +1079,9 @@
                 currentPath = pathStr.split(separator).filter(p => p !== "");
                 if (!expandedDirs.has(key)) expandedDirs.add(key);
                 updatePrompt();
-            } else { printLine(`User selected file: ${pathStr}`, "text-gray-500 italic"); }
+            } else { 
+                printLine(`Selected file: <span class="text-cyan-400">${pathStr}</span>`, "text-slate-400 italic"); 
+            }
         }
 
         function getCurrentDirObj() {
@@ -537,7 +1092,7 @@
             return ptr;
         }
 
-        // Fix 2: Robust CD Path Resolver
+        // CD Path Resolver
         function resolvePath(pathStr) {
             let tempPath = [...currentPath];
             if (activeOS === 'linux' && pathStr.startsWith('/')) { tempPath = []; pathStr = pathStr.substring(1); }
@@ -565,43 +1120,92 @@
             renderTree();
         }
 
+        // --- 7. Terminal Operations ---
+
         function printLine(text, className = "text-slate-300") {
             const div = document.createElement('div');
-            div.className = className + " whitespace-pre-wrap break-words";
+            div.className = className + " whitespace-pre-wrap break-words font-mono";
             div.innerHTML = text;
             outputLines.appendChild(div);
+        }
+
+        function clearTerminal() {
+            outputLines.innerHTML = '';
         }
 
         cmdInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 const val = this.value.trim();
-                if (val) { processCommand(val); commandHistory.push(val); historyIndex = commandHistory.length; }
-                this.value = ''; terminalOutput = document.getElementById('terminal-output'); terminalOutput.scrollTop = terminalOutput.scrollHeight;
+                if (val) { 
+                    processCommand(val); 
+                    commandHistory.push(val); 
+                    historyIndex = commandHistory.length; 
+                }
+                this.value = ''; 
+                const terminalOutput = document.getElementById('terminal-output'); 
+                terminalOutput.scrollTop = terminalOutput.scrollHeight;
             } else if (e.key === 'ArrowUp') {
-                e.preventDefault(); if (historyIndex > 0) { historyIndex--; this.value = commandHistory[historyIndex]; }
+                e.preventDefault(); 
+                if (historyIndex > 0) { historyIndex--; this.value = commandHistory[historyIndex]; }
             } else if (e.key === 'ArrowDown') {
-                e.preventDefault(); if (historyIndex < commandHistory.length - 1) { historyIndex++; this.value = commandHistory[historyIndex]; } else { historyIndex = commandHistory.length; this.value = ''; }
+                e.preventDefault(); 
+                if (historyIndex < commandHistory.length - 1) { historyIndex++; this.value = commandHistory[historyIndex]; } 
+                else { historyIndex = commandHistory.length; this.value = ''; }
             }
         });
 
         function processCommand(rawCmd) {
-            const separator = activeOS === 'linux' ? '/' : '\\';
             const promptSymbol = activeOS === 'linux' ? '$' : '>';
-            printLine(`${promptUser.innerText} ${promptPath.innerText} ${promptSymbol} ${rawCmd}`, "text-slate-400 font-bold opacity-75 mt-1");
+            printLine(`${promptUser.innerText} ${promptPath.innerText} ${promptSymbol} ${escapeHtml(rawCmd)}`, "text-slate-400 font-bold opacity-80 mt-1");
 
             const args = rawCmd.split(' ').filter(a => a !== "");
             const cmd = args[0]?.toLowerCase();
 
-            if (cmd === 'clear' || cmd === 'cls') { outputLines.innerHTML = ''; return; }
-            if (cmd === 'help') { printLine("Admin Tools: ls, cd, cat, clear, whoami, pwd", "text-yellow-400"); return; }
-            if (cmd === 'whoami') { printLine("root", "text-white"); return; }
-            if (cmd === 'pwd') { printLine(activeOS === 'linux' ? '/' + currentPath.join('/') : 'C:\\' + currentPath.join('\\'), "text-white"); return; }
+            if (cmd === 'clear' || cmd === 'cls') { clearTerminal(); return; }
+            if (cmd === 'help') { 
+                printLine("ArenaWebSec CLI Utility Commands:", "text-amber-400 font-bold"); 
+                printLine("  ls, dir         - List contents of current directory", "text-slate-300");
+                printLine("  cd <path>       - Change working directory", "text-slate-300");
+                printLine("  cat <file>      - Display file content", "text-slate-300");
+                printLine("  whoami          - Display current user privilege level", "text-slate-300");
+                printLine("  pwd             - Print working directory", "text-slate-300");
+                printLine("  cw, classwork   - Show completed Class Work task progress", "text-slate-300");
+                printLine("  sysinfo         - Display operating system specs", "text-slate-300");
+                printLine("  history         - Display executed command history", "text-slate-300");
+                printLine("  clear           - Clear terminal screen", "text-slate-300");
+                return; 
+            }
+            if (cmd === 'whoami') { printLine(activeOS === 'linux' ? "root (uid=0, gid=0)" : "NT AUTHORITY\\SYSTEM", "text-emerald-400 font-bold"); return; }
+            if (cmd === 'pwd') { printLine(activeOS === 'linux' ? '/' + currentPath.join('/') : 'C:\\' + currentPath.join('\\'), "text-emerald-400 font-bold"); return; }
+            
+            if (cmd === 'cw' || cmd === 'classwork') {
+                printLine(`Class Work Completed: ${cwCaptured.size}/${totalCW}`, "text-amber-400 font-bold");
+                cwCaptured.forEach(c => printLine(`  - ${c}`, "text-emerald-400 font-mono"));
+                if (cwCaptured.size === 0) printLine("  No Class Work tasks completed yet. Try accessing user.txt or root.txt via LFI!", "text-slate-400 italic");
+                return;
+            }
+
+            if (cmd === 'sysinfo') {
+                printLine(`OS Host: ${activeOS === 'linux' ? 'Ubuntu 22.04 LTS (EXT4)' : 'Windows Server 2019 (NTFS)'}`, "text-cyan-400");
+                printLine(`Web Server: ${activeOS === 'linux' ? 'Apache/2.4.41 (Ubuntu) PHP/7.4.3' : 'Microsoft-IIS/10.0 PHP/8.0'}`, "text-cyan-400");
+                printLine("Target Domain: arenawebsec.lab", "text-cyan-400");
+                return;
+            }
+
+            if (cmd === 'history') {
+                printLine("Command History:", "text-slate-400 font-bold");
+                commandHistory.forEach((c, idx) => printLine(` ${idx + 1}  ${escapeHtml(c)}`, "text-slate-300"));
+                return;
+            }
 
             if (cmd === 'ls' || cmd === 'dir') {
                 const dir = getCurrentDirObj();
-                if (!dir || dir.type !== 'dir') { printLine("Err: Directory not found", "text-red-400"); return; }
-                const items = Object.keys(dir.children || {}).map(k => dir.children[k].type === 'dir' ? `<span class='text-blue-400'>${k}${separator}</span>` : `<span class='text-slate-300'>${k}</span>`);
-                printLine(items.join('\t') || "(empty)", "");
+                if (!dir || dir.type !== 'dir') { printLine("Error: Directory not found", "text-rose-400"); return; }
+                const items = Object.keys(dir.children || {}).map(k => {
+                    const isDir = dir.children[k].type === 'dir';
+                    return isDir ? `<span class='text-blue-400 font-bold'>${k}/</span>` : `<span class='text-slate-200'>${k}</span>`;
+                });
+                printLine(items.join('   ') || "(empty directory)", "");
                 return;
             }
 
@@ -613,27 +1217,33 @@
                     let key = activeOS === 'linux' ? 'root' : 'C:';
                     expandedDirs.add(key); for(let p of newPath) { key += '|' + p; expandedDirs.add(key); }
                     updatePrompt();
-                } else { printLine("Err: Path not found", "text-red-400"); }
+                } else { printLine("Error: Path not found", "text-rose-400"); }
                 return;
             }
 
             if (cmd === 'cat' || cmd === 'type') {
-                if (!args[1]) { printLine("Usage: cat <file>", "text-yellow-400"); return; }
+                if (!args[1]) { printLine("Usage: cat <file_name>", "text-amber-400"); return; }
                 let targetPath = resolvePath(args[1]);
                 if (!targetPath) {
                     let dir = getCurrentDirObj();
                     if(dir.children && dir.children[args[1]] && dir.children[args[1]].type === 'file') {
-                        printLine(escapeHtml(dir.children[args[1]].content || ""), "text-white"); return;
+                        printLine(escapeHtml(dir.children[args[1]].content || "[Empty]"), "text-slate-200"); return;
                     }
-                    printLine("Err: File not found", "text-red-400"); return;
+                    printLine("Error: File not found", "text-rose-400"); return;
                 }
                 let ptr = currentFS; for(let p of targetPath) ptr = ptr.children[p];
-                if (ptr.type === 'file') { printLine(escapeHtml(ptr.content || ""), "text-white"); } else { printLine("Err: Is a directory", "text-red-400"); }
+                if (ptr.type === 'file') { printLine(escapeHtml(ptr.content || "[Empty]"), "text-slate-200"); } else { printLine("Error: Target is a directory", "text-rose-400"); }
                 return;
             }
-            printLine(`Unknown command: ${cmd}`, "text-red-400");
+            printLine(`Command not found: ${escapeHtml(cmd)}. Type 'help' for commands.`, "text-rose-400");
         }
 
+        // Modal Controls
+        function openCheatSheet() { document.getElementById('cheatsheet-modal').classList.remove('hidden'); }
+        function closeCheatSheet() { document.getElementById('cheatsheet-modal').classList.add('hidden'); }
+        function showCWStatus() { processCommand('cw'); }
+
+        // Start App
         init();
     </script>
 </body>
